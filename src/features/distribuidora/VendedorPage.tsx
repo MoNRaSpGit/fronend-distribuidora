@@ -1,0 +1,216 @@
+import { useEffect, useState } from "react";
+import { ClientePicker } from "./components/ClientePicker";
+import { createOrder, fetchProducts } from "./distribuidora.client";
+import { errorMessage, formatMoney, useDebounced } from "./distribuidora.shared";
+import type { Client, Order, Product } from "./distribuidora.types";
+
+type Line = { product: Product; quantity: number };
+
+// La pantalla del vendedor de la calle, pensada para el celular:
+// 1) elige el cliente, 2) arma el pedido sumando productos, 3) lo manda.
+// El pedido queda "pendiente" para que la oficina lo pase a boleta.
+export function VendedorPage() {
+  const [client, setClient] = useState<Client | null>(null);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [note, setNote] = useState("");
+  const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentOrder, setSentOrder] = useState<Order | null>(null);
+  const debouncedSearch = useDebounced(search.trim());
+
+  useEffect(() => {
+    if (!client) return;
+    let cancelled = false;
+    fetchProducts(debouncedSearch)
+      .then((result) => {
+        if (cancelled) return;
+        setProducts(result);
+        setError("");
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err, "No se pudieron cargar los productos."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProducts(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client, debouncedSearch]);
+
+  const total = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
+  const units = lines.reduce((sum, line) => sum + line.quantity, 0);
+
+  function quantityOf(productId: number) {
+    return lines.find((line) => line.product.id === productId)?.quantity ?? 0;
+  }
+
+  // Llegar a 0 saca el producto del pedido.
+  function setQuantity(product: Product, quantity: number) {
+    setLines((current) => {
+      if (quantity <= 0) return current.filter((line) => line.product.id !== product.id);
+      const exists = current.some((line) => line.product.id === product.id);
+      return exists
+        ? current.map((line) => (line.product.id === product.id ? { ...line, quantity } : line))
+        : [...current, { product, quantity }];
+    });
+  }
+
+  function resetOrder() {
+    setClient(null);
+    setLines([]);
+    setNote("");
+    setSearch("");
+    setError("");
+    setSentOrder(null);
+  }
+
+  function handleChangeClient() {
+    if (lines.length > 0 && !window.confirm("Si cambiás de cliente se pierde el pedido que estabas armando. ¿Seguir?")) {
+      return;
+    }
+    resetOrder();
+  }
+
+  async function handleSend() {
+    if (!client || lines.length === 0 || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const order = await createOrder({
+        clientId: client.id,
+        items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
+        note: note.trim() || undefined
+      });
+      setSentOrder(order);
+    } catch (err) {
+      setError(errorMessage(err, "No se pudo enviar el pedido. Probá de nuevo."));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sentOrder) {
+    return (
+      <section className="sent">
+        <div className="sent-check">✓</div>
+        <h1 className="page-title">Pedido N.º {sentOrder.id} enviado</h1>
+        <p>
+          {sentOrder.clientName} · {sentOrder.items.length} producto(s) · <strong>{formatMoney(sentOrder.total)}</strong>
+        </p>
+        <p className="message">Ya le llegó a la oficina para hacer la boleta.</p>
+        <button type="button" className="button button-primary button-block" onClick={resetOrder}>
+          Tomar otro pedido
+        </button>
+      </section>
+    );
+  }
+
+  if (!client) {
+    return <ClientePicker onSelect={setClient} />;
+  }
+
+  return (
+    <section className="pedido">
+      <div className="card pedido-cliente">
+        <div>
+          <span className="card-detail">Pedido para</span>
+          <strong>{client.name}</strong>
+          {client.address && <span className="card-detail">{client.address}</span>}
+        </div>
+        <button type="button" className="button button-secondary" onClick={handleChangeClient}>
+          Cambiar
+        </button>
+      </div>
+
+      {lines.length > 0 && (
+        <>
+          <h2 className="section-title">En el pedido</h2>
+          <ul className="card-list">
+            {lines.map((line) => (
+              <li key={line.product.id} className="card product-row">
+                <div className="product-row-info">
+                  <strong>{line.product.name}</strong>
+                  <span className="card-detail">
+                    {formatMoney(line.product.price)} c/u · {formatMoney(line.product.price * line.quantity)}
+                  </span>
+                </div>
+                <QuantityStepper quantity={line.quantity} onChange={(quantity) => setQuantity(line.product, quantity)} />
+              </li>
+            ))}
+          </ul>
+          <input
+            className="search-input"
+            placeholder="Nota para la oficina (opcional)"
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            maxLength={300}
+          />
+        </>
+      )}
+
+      <h2 className="section-title">Productos</h2>
+      <input
+        className="search-input"
+        type="search"
+        placeholder="Buscar producto (Coca, Fanta…)"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+
+      <ul className="card-list">
+        {products.map((product) => {
+          const quantity = quantityOf(product.id);
+          return (
+            <li key={product.id} className="card product-row">
+              <div className="product-row-info">
+                <strong>{product.name}</strong>
+                <span className="card-detail">{formatMoney(product.price)}</span>
+              </div>
+              {quantity === 0 ? (
+                <button type="button" className="button button-primary" onClick={() => setQuantity(product, 1)}>
+                  Agregar
+                </button>
+              ) : (
+                <QuantityStepper quantity={quantity} onChange={(next) => setQuantity(product, next)} />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {loadingProducts && products.length === 0 && <p className="message">Buscando…</p>}
+      {!loadingProducts && !error && products.length === 0 && (
+        <p className="message">No hay productos{debouncedSearch ? ` que coincidan con "${debouncedSearch}"` : ""}.</p>
+      )}
+      {error && <p className="message message-error">{error}</p>}
+
+      <div className="bottom-bar">
+        <div>
+          <span className="card-detail">{units} unidad(es)</span>
+          <strong className="bottom-bar-total">{formatMoney(total)}</strong>
+        </div>
+        <button type="button" className="button button-primary" onClick={handleSend} disabled={lines.length === 0 || sending}>
+          {sending ? "Enviando…" : "Confirmar pedido"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function QuantityStepper({ quantity, onChange }: { quantity: number; onChange: (quantity: number) => void }) {
+  return (
+    <div className="stepper">
+      <button type="button" aria-label="Restar" onClick={() => onChange(quantity - 1)}>
+        −
+      </button>
+      <span>{quantity}</span>
+      <button type="button" aria-label="Sumar" onClick={() => onChange(quantity + 1)}>
+        +
+      </button>
+    </div>
+  );
+}

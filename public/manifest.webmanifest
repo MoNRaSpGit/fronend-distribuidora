@@ -1,0 +1,12 @@
+{
+  "name": "Distribuidora",
+  "short_name": "Distribuidora",
+  "description": "Toma de pedidos en la calle y boletas en la oficina.",
+  "lang": "es-UY",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7f5",
+  "theme_color": "#14532d",
+  "icons": [{ "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
