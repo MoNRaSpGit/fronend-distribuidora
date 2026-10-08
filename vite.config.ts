@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   return {
     // OJO: si el repo de GitHub Pages termina con otro nombre, ajustar
     // este base (tiene que matchear "https://<usuario>.github.io/<repo>/").
-    base: isGithubPagesBuild ? "/frontend-distribuidora/" : "/",
+    base: isGithubPagesBuild ? "/fronend-distribuidora/" : "/",
     plugins: [react()]
   };
 });
