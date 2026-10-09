@@ -574,19 +574,20 @@ input {
 }
 
 /* ---------------- Aviso de actualizacion (09/10/2026) ---------------- */
-/* Cartel fijo arriba, debajo de la barra de la app. */
+/* Cartel fijo abajo a la izquierda, como en el resto de los proyectos.
+   Va levantado para no tapar la barra del total / "Confirmar pedido"
+   del vendedor, que tambien es fija abajo. */
 .update-banner {
   position: fixed;
-  top: 64px;
-  left: 50%;
+  left: 16px;
+  bottom: calc(92px + env(safe-area-inset-bottom));
   z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: min(440px, calc(100vw - 24px));
+  width: min(390px, calc(100vw - 32px));
   padding: 10px 10px 10px 16px;
-  transform: translateX(-50%);
   background: var(--color-surface);
   border: 2px solid var(--color-accent);
   border-radius: 14px;
@@ -597,7 +598,7 @@ input {
 @keyframes update-banner-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -16px);
+    transform: translateY(16px);
   }
 }
 

@@ -34,7 +34,7 @@ async function clearAppCache() {
 }
 
 // Aviso de "hay una nueva actualizacion" (09/10/2026, pedido explicito):
-// un cartel arriba y, al tocar Actualizar, una barra de progreso que toma
+// un cartel abajo a la izquierda y, al tocar Actualizar, una barra de progreso que toma
 // toda la pantalla y recarga la app cuando termina.
 //
 // A diferencia de construccion/gym, aca NUNCA se actualiza sola: el
