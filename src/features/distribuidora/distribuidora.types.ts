@@ -11,6 +11,7 @@ export type Product = {
   id: number;
   name: string;
   price: number;
+  active: boolean;
 };
 
 export type OrderItem = {

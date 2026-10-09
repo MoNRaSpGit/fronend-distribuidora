@@ -548,3 +548,22 @@ input {
     padding: 0;
   }
 }
+
+/* ---------------- Ajustes 09/10/2026 ---------------- */
+/* Resultado de busqueda que ya esta en el pedido: la cantidad se cambia
+   arriba, en "En el pedido", no aca. */
+.in-order-tag {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-dark);
+}
+
+.toolbar-search {
+  flex: 1 1 200px;
+  width: auto;
+}
+
+.card.is-inactive {
+  opacity: 0.55;
+}

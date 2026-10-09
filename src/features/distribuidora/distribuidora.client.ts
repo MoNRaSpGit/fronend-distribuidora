@@ -34,8 +34,21 @@ export function fetchProducts(search: string) {
   return request<Product[]>(`/products?q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.");
 }
 
+// El catalogo entero para la oficina, con los dados de baja incluidos.
+export function fetchCatalog(search: string) {
+  return request<Product[]>(`/products?all=1&q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.");
+}
+
 export function createProduct(input: { name: string; price: number }) {
   return request<Product>("/products", "No se pudo guardar el producto.", postJson(input));
+}
+
+export function updateProduct(productId: number, input: Partial<{ name: string; price: number; active: boolean }>) {
+  return request<Product>(`/products/${productId}`, "No se pudo guardar el producto.", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
 }
 
 export function fetchOrders(status: OrderStatus) {

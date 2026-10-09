@@ -15,14 +15,17 @@ export function VendedorPage() {
   const [note, setNote] = useState("");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [sentOrder, setSentOrder] = useState<Order | null>(null);
   const debouncedSearch = useDebounced(search.trim());
 
+  // Los productos NO se listan de entrada (09/10/2026, pedido explicito:
+  // "que no salga nada, lo que escriba en el buscador ahi va saliendo"):
+  // solo se busca cuando hay algo escrito.
   useEffect(() => {
-    if (!client) return;
+    if (!client || !debouncedSearch) return;
     let cancelled = false;
     fetchProducts(debouncedSearch)
       .then((result) => {
@@ -44,8 +47,20 @@ export function VendedorPage() {
   const total = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
   const units = lines.reduce((sum, line) => sum + line.quantity, 0);
 
-  function quantityOf(productId: number) {
-    return lines.find((line) => line.product.id === productId)?.quantity ?? 0;
+  function isInOrder(productId: number) {
+    return lines.some((line) => line.product.id === productId);
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    // Al borrar el buscador se vacian los resultados; al escribir, se
+    // avisa que esta buscando hasta que llegue la respuesta.
+    if (value.trim()) {
+      setLoadingProducts(true);
+    } else {
+      setProducts([]);
+      setLoadingProducts(false);
+    }
   }
 
   // Llegar a 0 saca el producto del pedido.
@@ -158,33 +173,35 @@ export function VendedorPage() {
         type="search"
         placeholder="Buscar producto (Coca, Fanta…)"
         value={search}
-        onChange={(event) => setSearch(event.target.value)}
+        onChange={(event) => handleSearchChange(event.target.value)}
       />
 
-      <ul className="card-list">
-        {products.map((product) => {
-          const quantity = quantityOf(product.id);
-          return (
+      {/* La cantidad se maneja en un solo lugar: arriba, "En el pedido".
+          Aca el resultado solo se agrega (o avisa que ya esta). */}
+      {search.trim() && (
+        <ul className="card-list">
+          {products.map((product) => (
             <li key={product.id} className="card product-row">
               <div className="product-row-info">
                 <strong>{product.name}</strong>
                 <span className="card-detail">{formatMoney(product.price)}</span>
               </div>
-              {quantity === 0 ? (
+              {isInOrder(product.id) ? (
+                <span className="in-order-tag">✓ En el pedido</span>
+              ) : (
                 <button type="button" className="button button-primary" onClick={() => setQuantity(product, 1)}>
                   Agregar
                 </button>
-              ) : (
-                <QuantityStepper quantity={quantity} onChange={(next) => setQuantity(product, next)} />
               )}
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
 
-      {loadingProducts && products.length === 0 && <p className="message">Buscando…</p>}
-      {!loadingProducts && !error && products.length === 0 && (
-        <p className="message">No hay productos{debouncedSearch ? ` que coincidan con "${debouncedSearch}"` : ""}.</p>
+      {!search.trim() && <p className="message">Escribí el nombre del producto para buscarlo.</p>}
+      {search.trim() && loadingProducts && products.length === 0 && <p className="message">Buscando…</p>}
+      {search.trim() && !loadingProducts && !error && products.length === 0 && (
+        <p className="message">No hay productos que coincidan con "{search.trim()}".</p>
       )}
       {error && <p className="message message-error">{error}</p>}
 

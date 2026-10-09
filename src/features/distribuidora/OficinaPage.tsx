@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
-import { NuevoProductoModal } from "./components/NuevoProductoModal";
+import { ProductosPanel } from "./components/ProductosPanel";
 import { fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatDateTime, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
 import type { Order, OrderStatus } from "./distribuidora.types";
@@ -10,7 +10,8 @@ const REFRESH_MS = 20000;
 
 // La pantalla de la oficina: ve los pedidos que van mandando desde la
 // calle, abre uno y lo pasa a boleta (queda numerada y lista para
-// imprimir). Tambien da de alta clientes y productos.
+// imprimir). Tambien da de alta clientes y, en la pestaña Productos,
+// agrega y edita el catalogo.
 export function OficinaPage() {
   const [status, setStatus] = useState<OrderStatus>("pendiente");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -18,7 +19,8 @@ export function OficinaPage() {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
   const [invoicing, setInvoicing] = useState(false);
-  const [modal, setModal] = useState<"cliente" | "producto" | null>(null);
+  const [showProducts, setShowProducts] = useState(false);
+  const [showNewClient, setShowNewClient] = useState(false);
   const [notice, setNotice] = useState("");
 
   // Cada cambio de refreshTick vuelve a pedir la lista.
@@ -51,6 +53,8 @@ export function OficinaPage() {
   }, []);
 
   function changeStatus(nextStatus: OrderStatus) {
+    setShowProducts(false);
+    setNotice("");
     if (nextStatus === status) return;
     setLoading(true);
     setOrders([]);
@@ -99,33 +103,60 @@ export function OficinaPage() {
     <section>
       <div className="toolbar">
         <div className="segmented">
-          <button type="button" className={status === "pendiente" ? "is-active" : ""} onClick={() => changeStatus("pendiente")}>
+          <button
+            type="button"
+            className={!showProducts && status === "pendiente" ? "is-active" : ""}
+            onClick={() => changeStatus("pendiente")}
+          >
             Pendientes
           </button>
-          <button type="button" className={status === "facturado" ? "is-active" : ""} onClick={() => changeStatus("facturado")}>
+          <button
+            type="button"
+            className={!showProducts && status === "facturado" ? "is-active" : ""}
+            onClick={() => changeStatus("facturado")}
+          >
             Facturados
           </button>
-        </div>
-        <div className="toolbar-actions">
-          <button type="button" className="button button-secondary" onClick={() => setModal("cliente")}>
-            + Cliente
-          </button>
-          <button type="button" className="button button-secondary" onClick={() => setModal("producto")}>
-            + Producto
+          <button type="button" className={showProducts ? "is-active" : ""} onClick={() => setShowProducts(true)}>
+            Productos
           </button>
         </div>
+        {!showProducts && (
+          <div className="toolbar-actions">
+            <button type="button" className="button button-secondary" onClick={() => setShowNewClient(true)}>
+              + Cliente
+            </button>
+          </div>
+        )}
       </div>
 
-      {notice && <p className="message message-ok">{notice}</p>}
-      {error && <p className="message message-error">{error}</p>}
-      {loading && <p className="message">Cargando pedidos…</p>}
-      {!loading && !error && orders.length === 0 && (
-        <p className="message">
-          {status === "pendiente" ? "No hay pedidos pendientes. Cuando un vendedor mande uno, aparece acá." : "Todavía no hay boletas."}
-        </p>
-      )}
+      {showProducts ? <ProductosPanel /> : renderOrders()}
 
-      <ul className="card-list">
+      {showNewClient && (
+        <NuevoClienteModal
+          onClose={() => setShowNewClient(false)}
+          onCreated={(client) => {
+            setShowNewClient(false);
+            setNotice(`Cliente "${client.name}" guardado.`);
+          }}
+        />
+      )}
+    </section>
+  );
+
+  function renderOrders() {
+    return (
+      <>
+        {notice && <p className="message message-ok">{notice}</p>}
+        {error && <p className="message message-error">{error}</p>}
+        {loading && <p className="message">Cargando pedidos…</p>}
+        {!loading && !error && orders.length === 0 && (
+          <p className="message">
+            {status === "pendiente" ? "No hay pedidos pendientes. Cuando un vendedor mande uno, aparece acá." : "Todavía no hay boletas."}
+          </p>
+        )}
+
+        <ul className="card-list">
         {orders.map((order) => (
           <li key={order.id}>
             <button type="button" className="card card-button order-card" onClick={() => setSelected(order)}>
@@ -140,26 +171,8 @@ export function OficinaPage() {
             </button>
           </li>
         ))}
-      </ul>
-
-      {modal === "cliente" && (
-        <NuevoClienteModal
-          onClose={() => setModal(null)}
-          onCreated={(client) => {
-            setModal(null);
-            setNotice(`Cliente "${client.name}" guardado.`);
-          }}
-        />
-      )}
-      {modal === "producto" && (
-        <NuevoProductoModal
-          onClose={() => setModal(null)}
-          onCreated={(productName) => {
-            setModal(null);
-            setNotice(`Producto "${productName}" guardado.`);
-          }}
-        />
-      )}
-    </section>
-  );
+        </ul>
+      </>
+    );
+  }
 }
