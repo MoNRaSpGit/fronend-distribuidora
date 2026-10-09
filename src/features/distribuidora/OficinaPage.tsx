@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Boleta } from "./components/Boleta";
+import { ConfirmModal } from "./components/ConfirmModal";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { ProductosPanel } from "./components/ProductosPanel";
@@ -23,6 +24,9 @@ export function OficinaPage() {
   // Pedido pendiente que se esta editando (pantalla aparte), si hay.
   const [editing, setEditing] = useState<Order | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  // Pedido que se pidio eliminar y espera la confirmacion en el modal.
+  const [confirmDelete, setConfirmDelete] = useState<Order | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const [showProducts, setShowProducts] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [notice, setNotice] = useState("");
@@ -81,22 +85,46 @@ export function OficinaPage() {
 
   // Solo los pedidos pendientes se pueden editar o eliminar: uno ya
   // facturado tiene numero de boleta y no se toca.
+  function askDelete(order: Order) {
+    setDeleteError("");
+    setConfirmDelete(order);
+  }
+
+  // Se llama recien cuando se confirma en el modal. Si falla, el modal
+  // queda abierto mostrando el motivo.
   async function handleDelete(order: Order) {
     if (deletingId !== null) return;
-    if (!window.confirm(`¿Eliminar el pedido N.º ${order.id} de ${order.clientName}? No se puede deshacer.`)) return;
     setDeletingId(order.id);
-    setError("");
+    setDeleteError("");
     try {
       await deleteOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
       setSelected(null);
+      setConfirmDelete(null);
       setNotice(`Pedido N.º ${order.id} eliminado.`);
     } catch (err) {
-      setError(errorMessage(err, "No se pudo eliminar el pedido."));
+      setDeleteError(errorMessage(err, "No se pudo eliminar el pedido."));
     } finally {
       setDeletingId(null);
       setRefreshTick((tick) => tick + 1);
     }
+  }
+
+  function renderDeleteModal() {
+    if (!confirmDelete) return null;
+    return (
+      <ConfirmModal
+        title="¿Eliminar el pedido?"
+        message={`Pedido N.º ${confirmDelete.id} de ${confirmDelete.clientName}, por ${formatMoney(confirmDelete.total)}. No se puede deshacer.`}
+        confirmLabel="Sí, eliminar"
+        busyLabel="Eliminando…"
+        danger
+        busy={deletingId !== null}
+        error={deleteError}
+        onConfirm={() => handleDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    );
   }
 
   if (editing) {
@@ -130,10 +158,10 @@ export function OficinaPage() {
               <button
                 type="button"
                 className="button button-danger"
-                onClick={() => handleDelete(selected)}
+                onClick={() => askDelete(selected)}
                 disabled={deletingId !== null}
               >
-                {deletingId === selected.id ? "Eliminando…" : "Eliminar"}
+                Eliminar
               </button>
               <button type="button" className="button button-secondary" onClick={() => setEditing(selected)}>
                 Editar
@@ -146,6 +174,7 @@ export function OficinaPage() {
         </div>
         {error && <p className="message message-error no-print">{error}</p>}
         <Boleta order={selected} />
+        {renderDeleteModal()}
       </section>
     );
   }
@@ -182,6 +211,8 @@ export function OficinaPage() {
       </div>
 
       {showProducts ? <ProductosPanel /> : renderOrders()}
+
+      {renderDeleteModal()}
 
       {showNewClient && (
         <NuevoClienteModal
@@ -228,10 +259,10 @@ export function OficinaPage() {
                   <button
                     type="button"
                     className="button button-danger"
-                    onClick={() => handleDelete(order)}
+                    onClick={() => askDelete(order)}
                     disabled={deletingId !== null}
                   >
-                    {deletingId === order.id ? "Eliminando…" : "Eliminar"}
+                    Eliminar
                   </button>
                 </div>
               )}

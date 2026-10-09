@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ClientePicker } from "./components/ClientePicker";
+import { ConfirmModal } from "./components/ConfirmModal";
 import { QuantityStepper } from "./components/QuantityStepper";
 import { createOrder, fetchProducts } from "./distribuidora.client";
 import { errorMessage, formatMoney, useDebounced } from "./distribuidora.shared";
@@ -21,6 +22,7 @@ export function VendedorPage() {
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [sentOrder, setSentOrder] = useState<Order | null>(null);
+  const [confirmChangeClient, setConfirmChangeClient] = useState(false);
   const debouncedSearch = useDebounced(search.trim());
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,10 +95,14 @@ export function VendedorPage() {
     setSearch("");
     setError("");
     setSentOrder(null);
+    setConfirmChangeClient(false);
   }
 
   function handleChangeClient() {
-    if (lines.length > 0 && !window.confirm("Si cambiás de cliente se pierde el pedido que estabas armando. ¿Seguir?")) {
+    // Con productos ya cargados se pide confirmacion: cambiar de cliente
+    // descarta el pedido que se estaba armando.
+    if (lines.length > 0) {
+      setConfirmChangeClient(true);
       return;
     }
     resetOrder();
@@ -222,6 +228,17 @@ export function VendedorPage() {
             maxLength={300}
           />
         </>
+      )}
+
+      {confirmChangeClient && (
+        <ConfirmModal
+          title="¿Cambiar de cliente?"
+          message="Se pierde el pedido que estabas armando."
+          confirmLabel="Sí, cambiar"
+          danger
+          onConfirm={resetOrder}
+          onCancel={() => setConfirmChangeClient(false)}
+        />
       )}
 
       <div className="bottom-bar">

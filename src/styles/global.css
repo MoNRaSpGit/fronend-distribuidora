@@ -690,3 +690,15 @@ input {
 .toolbar-actions {
   flex-wrap: wrap;
 }
+
+/* ---------------- Modal de confirmacion propio (09/10/2026) ---------------- */
+.confirm-message {
+  margin: 0 0 4px;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.button-danger-solid {
+  background: var(--color-danger);
+  color: #fff;
+}
