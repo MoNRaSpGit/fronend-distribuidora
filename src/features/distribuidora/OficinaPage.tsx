@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
+import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { ProductosPanel } from "./components/ProductosPanel";
 import { deleteOrder, fetchOrders, invoiceOrder } from "./distribuidora.client";
-import { errorMessage, formatDateTime, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
+import { errorMessage, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
 import type { Order, OrderStatus } from "./distribuidora.types";
 
 const REFRESH_MS = 20000;
@@ -27,6 +28,8 @@ export function OficinaPage() {
   // Pedido que se pidio eliminar y espera la confirmacion en el modal.
   const [confirmDelete, setConfirmDelete] = useState<Order | null>(null);
   const [deleteError, setDeleteError] = useState("");
+  // Pedido que se dejo apretado en la lista: muestra sus opciones.
+  const [optionsFor, setOptionsFor] = useState<Order | null>(null);
   const [showProducts, setShowProducts] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [notice, setNotice] = useState("");
@@ -97,7 +100,7 @@ export function OficinaPage() {
     setDeletingId(order.id);
     setDeleteError("");
     try {
-      await deleteOrder(order.id);
+      await deleteOrder(order.id, order.status === "facturado");
       setOrders((current) => current.filter((item) => item.id !== order.id));
       setSelected(null);
       setConfirmDelete(null);
@@ -112,10 +115,15 @@ export function OficinaPage() {
 
   function renderDeleteModal() {
     if (!confirmDelete) return null;
+    const invoiced = confirmDelete.status === "facturado" && confirmDelete.invoiceNumber !== null;
     return (
       <ConfirmModal
-        title="¿Eliminar el pedido?"
-        message={`Pedido N.º ${confirmDelete.id} de ${confirmDelete.clientName}, por ${formatMoney(confirmDelete.total)}. No se puede deshacer.`}
+        title={invoiced ? "¿Eliminar la boleta?" : "¿Eliminar el pedido?"}
+        message={
+          invoiced
+            ? `Boleta ${formatInvoiceNumber(confirmDelete.invoiceNumber!)} de ${confirmDelete.clientName}, por ${formatMoney(confirmDelete.total)}. Ya está generada: se borra el pedido y su boleta. No se puede deshacer.`
+            : `Pedido N.º ${confirmDelete.id} de ${confirmDelete.clientName}, por ${formatMoney(confirmDelete.total)}. No se puede deshacer.`
+        }
         confirmLabel="Sí, eliminar"
         busyLabel="Eliminando…"
         danger
@@ -124,6 +132,60 @@ export function OficinaPage() {
         onConfirm={() => handleDelete(confirmDelete)}
         onCancel={() => setConfirmDelete(null)}
       />
+    );
+  }
+
+  // Las opciones que salen al dejar apretado un pedido de la lista.
+  function renderOptionsModal() {
+    if (!optionsFor) return null;
+    const order = optionsFor;
+    const pending = order.status === "pendiente";
+    const close = () => setOptionsFor(null);
+    return (
+      <div className="modal-backdrop" onClick={close}>
+        <div className="modal options-modal" role="menu" onClick={(event) => event.stopPropagation()}>
+          <h2>{order.clientName}</h2>
+          <p className="confirm-message">
+            {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
+            {formatMoney(order.total)}
+          </p>
+          <button
+            type="button"
+            className="button button-secondary button-block"
+            onClick={() => {
+              close();
+              setSelected(order);
+            }}
+          >
+            {pending ? "Abrir pedido" : "Abrir boleta"}
+          </button>
+          {pending && (
+            <button
+              type="button"
+              className="button button-secondary button-block"
+              onClick={() => {
+                close();
+                setEditing(order);
+              }}
+            >
+              Editar
+            </button>
+          )}
+          <button
+            type="button"
+            className="button button-danger button-block"
+            onClick={() => {
+              close();
+              askDelete(order);
+            }}
+          >
+            Eliminar
+          </button>
+          <button type="button" className="button button-secondary button-block" onClick={close}>
+            Cancelar
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -212,6 +274,7 @@ export function OficinaPage() {
 
       {showProducts ? <ProductosPanel /> : renderOrders()}
 
+      {renderOptionsModal()}
       {renderDeleteModal()}
 
       {showNewClient && (
@@ -238,19 +301,12 @@ export function OficinaPage() {
           </p>
         )}
 
+        {orders.length > 0 && <p className="hint">Dejá apretado un pedido para ver las opciones (eliminar, abrir…).</p>}
+
         <ul className="card-list">
           {orders.map((order) => (
             <li key={order.id} className="order-item">
-              <button type="button" className="card card-button order-card" onClick={() => setSelected(order)}>
-                <div>
-                  <strong>{order.clientName}</strong>
-                  <span className="card-detail">
-                    {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
-                    {formatDateTime(order.createdAt)} · {order.items.length} producto(s)
-                  </span>
-                </div>
-                <strong>{formatMoney(order.total)}</strong>
-              </button>
+              <OrderCard order={order} onOpen={() => setSelected(order)} onLongPress={() => setOptionsFor(order)} />
               {order.status === "pendiente" && (
                 <div className="order-item-actions">
                   <button type="button" className="button button-secondary" onClick={() => setEditing(order)}>

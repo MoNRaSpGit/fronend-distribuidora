@@ -72,8 +72,12 @@ export function updateOrder(orderId: number, input: { items: Array<{ productId: 
   });
 }
 
-export function deleteOrder(orderId: number) {
-  return request<void>(`/orders/${orderId}`, "No se pudo eliminar el pedido.", { method: "DELETE" });
+// includeInvoiced: hace falta para borrar un pedido que ya tiene boleta
+// (el backend lo exige a proposito, para que no pase por accidente).
+export function deleteOrder(orderId: number, includeInvoiced = false) {
+  return request<void>(`/orders/${orderId}${includeInvoiced ? "?boleta=1" : ""}`, "No se pudo eliminar el pedido.", {
+    method: "DELETE"
+  });
 }
 
 export function invoiceOrder(orderId: number) {
