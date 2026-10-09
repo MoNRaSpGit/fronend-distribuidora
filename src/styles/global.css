@@ -572,3 +572,91 @@ input {
 .pedido .search-input {
   margin-top: 12px;
 }
+
+/* ---------------- Aviso de actualizacion (09/10/2026) ---------------- */
+/* Cartel fijo arriba, debajo de la barra de la app. */
+.update-banner {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(440px, calc(100vw - 24px));
+  padding: 10px 10px 10px 16px;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(20, 50, 30, 0.22);
+  animation: update-banner-in 0.35s ease-out;
+}
+
+@keyframes update-banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -16px);
+  }
+}
+
+/* Al tocar Actualizar la barra toma toda la pantalla. */
+.update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-accent-dark);
+  color: #fff;
+}
+
+.update-overlay-card {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.update-overlay-card img {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.update-overlay-card strong {
+  font-size: 20px;
+}
+
+.update-overlay-card span {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.update-progress {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.update-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #bbf7d0;
+  transition: width 0.08s linear;
+}
+
+@media print {
+  .update-banner,
+  .update-overlay {
+    display: none !important;
+  }
+}
