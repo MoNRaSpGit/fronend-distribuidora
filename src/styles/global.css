@@ -702,3 +702,49 @@ input {
   background: var(--color-danger);
   color: #fff;
 }
+
+/* ---------------- Impresion de la boleta: A4 horizontal (09/10/2026) ---------------- */
+/* Pedido explicito: la boleta sale en hoja A4 apaisada. @page fija el
+   tamaño y la orientacion que propone el navegador al imprimir (Chrome y
+   Edge lo respetan; si en el cuadro de impresion alguien elige otra
+   cosa a mano, gana lo que elija ahi). */
+@page {
+  size: A4 landscape;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    width: auto;
+    height: auto;
+  }
+
+  .boleta {
+    width: 100%;
+    font-size: 12pt;
+    /* Que el logo y las lineas salgan como en pantalla, no lavados. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Pedidos largos que pasan a otra hoja: el encabezado de la tabla se
+     repite en cada una, un renglon nunca queda cortado al medio y el
+     total no se separa de la tabla sin necesidad. */
+  .boleta-tabla thead {
+    display: table-header-group;
+  }
+
+  .boleta-tabla tr,
+  .boleta-header,
+  .boleta-cliente,
+  .boleta-pie {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .boleta-tabla th,
+  .boleta-tabla td {
+    padding: 6px;
+  }
+}
