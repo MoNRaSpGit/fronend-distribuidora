@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
+import { PedidoEditor } from "./components/PedidoEditor";
 import { ProductosPanel } from "./components/ProductosPanel";
-import { fetchOrders, invoiceOrder } from "./distribuidora.client";
+import { deleteOrder, fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatDateTime, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
 import type { Order, OrderStatus } from "./distribuidora.types";
 
@@ -19,6 +20,9 @@ export function OficinaPage() {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
   const [invoicing, setInvoicing] = useState(false);
+  // Pedido pendiente que se esta editando (pantalla aparte), si hay.
+  const [editing, setEditing] = useState<Order | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showProducts, setShowProducts] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [notice, setNotice] = useState("");
@@ -75,6 +79,40 @@ export function OficinaPage() {
     }
   }
 
+  // Solo los pedidos pendientes se pueden editar o eliminar: uno ya
+  // facturado tiene numero de boleta y no se toca.
+  async function handleDelete(order: Order) {
+    if (deletingId !== null) return;
+    if (!window.confirm(`¿Eliminar el pedido N.º ${order.id} de ${order.clientName}? No se puede deshacer.`)) return;
+    setDeletingId(order.id);
+    setError("");
+    try {
+      await deleteOrder(order.id);
+      setOrders((current) => current.filter((item) => item.id !== order.id));
+      setSelected(null);
+      setNotice(`Pedido N.º ${order.id} eliminado.`);
+    } catch (err) {
+      setError(errorMessage(err, "No se pudo eliminar el pedido."));
+    } finally {
+      setDeletingId(null);
+      setRefreshTick((tick) => tick + 1);
+    }
+  }
+
+  if (editing) {
+    return (
+      <PedidoEditor
+        order={editing}
+        onCancel={() => setEditing(null)}
+        onSaved={(saved) => {
+          setEditing(null);
+          setSelected(saved);
+          setRefreshTick((tick) => tick + 1);
+        }}
+      />
+    );
+  }
+
   if (selected) {
     const facturado = selected.status === "facturado";
     return (
@@ -88,9 +126,22 @@ export function OficinaPage() {
               Imprimir boleta
             </button>
           ) : (
-            <button type="button" className="button button-primary" onClick={handleInvoice} disabled={invoicing}>
-              {invoicing ? "Generando…" : "Generar boleta"}
-            </button>
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                className="button button-danger"
+                onClick={() => handleDelete(selected)}
+                disabled={deletingId !== null}
+              >
+                {deletingId === selected.id ? "Eliminando…" : "Eliminar"}
+              </button>
+              <button type="button" className="button button-secondary" onClick={() => setEditing(selected)}>
+                Editar
+              </button>
+              <button type="button" className="button button-primary" onClick={handleInvoice} disabled={invoicing}>
+                {invoicing ? "Generando…" : "Generar boleta"}
+              </button>
+            </div>
           )}
         </div>
         {error && <p className="message message-error no-print">{error}</p>}
@@ -157,20 +208,35 @@ export function OficinaPage() {
         )}
 
         <ul className="card-list">
-        {orders.map((order) => (
-          <li key={order.id}>
-            <button type="button" className="card card-button order-card" onClick={() => setSelected(order)}>
-              <div>
-                <strong>{order.clientName}</strong>
-                <span className="card-detail">
-                  {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
-                  {formatDateTime(order.createdAt)} · {order.items.length} producto(s)
-                </span>
-              </div>
-              <strong>{formatMoney(order.total)}</strong>
-            </button>
-          </li>
-        ))}
+          {orders.map((order) => (
+            <li key={order.id} className="order-item">
+              <button type="button" className="card card-button order-card" onClick={() => setSelected(order)}>
+                <div>
+                  <strong>{order.clientName}</strong>
+                  <span className="card-detail">
+                    {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
+                    {formatDateTime(order.createdAt)} · {order.items.length} producto(s)
+                  </span>
+                </div>
+                <strong>{formatMoney(order.total)}</strong>
+              </button>
+              {order.status === "pendiente" && (
+                <div className="order-item-actions">
+                  <button type="button" className="button button-secondary" onClick={() => setEditing(order)}>
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-danger"
+                    onClick={() => handleDelete(order)}
+                    disabled={deletingId !== null}
+                  >
+                    {deletingId === order.id ? "Eliminando…" : "Eliminar"}
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
         </ul>
       </>
     );

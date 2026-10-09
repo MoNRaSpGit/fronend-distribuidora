@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ClientePicker } from "./components/ClientePicker";
+import { QuantityStepper } from "./components/QuantityStepper";
 import { createOrder, fetchProducts } from "./distribuidora.client";
 import { errorMessage, formatMoney, useDebounced } from "./distribuidora.shared";
 import type { Client, Order, Product } from "./distribuidora.types";
@@ -233,19 +234,5 @@ export function VendedorPage() {
         </button>
       </div>
     </section>
-  );
-}
-
-function QuantityStepper({ quantity, onChange }: { quantity: number; onChange: (quantity: number) => void }) {
-  return (
-    <div className="stepper">
-      <button type="button" aria-label="Restar" onClick={() => onChange(quantity - 1)}>
-        −
-      </button>
-      <span>{quantity}</span>
-      <button type="button" aria-label="Sumar" onClick={() => onChange(quantity + 1)}>
-        +
-      </button>
-    </div>
   );
 }

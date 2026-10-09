@@ -13,6 +13,11 @@ async function request<T>(path: string, errorMessage: string, init?: RequestInit
     // Sin señal en la calle es el caso esperable, no una rareza.
     throw new Error("Sin conexión. Revisá la señal y probá de nuevo.");
   }
+  if (response.status === 409) {
+    // El backend explica el motivo (ej: el pedido ya tiene boleta).
+    const conflict = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(conflict?.message || errorMessage);
+  }
   if (!response.ok) throw new Error(errorMessage);
   const text = await response.text();
   return text ? (JSON.parse(text) as T) : (undefined as T);
@@ -57,6 +62,18 @@ export function fetchOrders(status: OrderStatus) {
 
 export function createOrder(input: { clientId: number; items: Array<{ productId: number; quantity: number }>; note?: string }) {
   return request<Order>("/orders", "No se pudo enviar el pedido. Probá de nuevo.", postJson(input));
+}
+
+export function updateOrder(orderId: number, input: { items: Array<{ productId: number; quantity: number }>; note?: string }) {
+  return request<Order>(`/orders/${orderId}`, "No se pudo guardar el pedido.", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteOrder(orderId: number) {
+  return request<void>(`/orders/${orderId}`, "No se pudo eliminar el pedido.", { method: "DELETE" });
 }
 
 export function invoiceOrder(orderId: number) {
