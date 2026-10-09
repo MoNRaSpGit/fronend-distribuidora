@@ -8,7 +8,8 @@ interface Props {
   onSelect: (client: Client) => void;
 }
 
-// Paso 1 del vendedor: buscar el cliente (por nombre o RUT) y tocarlo.
+// Paso 1 del vendedor: buscar el cliente (por negocio, persona, calle,
+// RUT o codigo) y tocarlo.
 export function ClientePicker({ onSelect }: Props) {
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
@@ -61,7 +62,7 @@ export function ClientePicker({ onSelect }: Props) {
       <input
         className="search-input"
         type="search"
-        placeholder="Buscar cliente por nombre o RUT"
+        placeholder="Buscar cliente (negocio, persona o calle)"
         value={search}
         onChange={(event) => handleSearchChange(event.target.value)}
         autoFocus
@@ -76,7 +77,8 @@ export function ClientePicker({ onSelect }: Props) {
               <button type="button" className="card card-button" onClick={() => onSelect(client)}>
                 <strong>{client.name}</strong>
                 <span className="card-detail">
-                  {[client.address, client.rut ? `RUT ${client.rut}` : null].filter(Boolean).join(" · ") || "Sin datos cargados"}
+                  {[client.contactName, client.address, client.rut ? `RUT ${client.rut}` : null].filter(Boolean).join(" · ") ||
+                    "Sin datos cargados"}
                 </span>
               </button>
             </li>
@@ -84,7 +86,7 @@ export function ClientePicker({ onSelect }: Props) {
         </ul>
       )}
 
-      {!typed && <p className="message">Escribí el nombre o el RUT del cliente para buscarlo.</p>}
+      {!typed && <p className="message">Escribí el nombre del negocio, de la persona o la calle para buscarlo.</p>}
       {typed && !loading && !error && clients.length === 0 && (
         <p className="message">No hay clientes que coincidan con "{typed}".</p>
       )}

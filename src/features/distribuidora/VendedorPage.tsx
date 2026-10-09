@@ -145,7 +145,9 @@ export function VendedorPage() {
         <div>
           <span className="card-detail">Pedido para</span>
           <strong>{client.name}</strong>
-          {client.address && <span className="card-detail">{client.address}</span>}
+          {(client.contactName || client.address) && (
+            <span className="card-detail">{[client.contactName, client.address].filter(Boolean).join(" · ")}</span>
+          )}
         </div>
         <button type="button" className="button button-secondary" onClick={handleChangeClient}>
           Cambiar

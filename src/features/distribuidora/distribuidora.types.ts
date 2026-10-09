@@ -1,7 +1,9 @@
 // Mismas formas que devuelve el backend (modules/distribuidora/distribuidora.types.ts).
 export type Client = {
   id: number;
+  code: string | null;
   name: string;
+  contactName: string | null;
   rut: string | null;
   address: string | null;
   phone: string | null;
