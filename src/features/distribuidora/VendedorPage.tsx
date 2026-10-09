@@ -158,7 +158,7 @@ export function VendedorPage() {
         ref={searchInputRef}
         className="search-input"
         type="search"
-        placeholder="Buscar producto (Coca, Fanta…)"
+        placeholder="Buscar producto (Fideos, Yerba, Detergente…)"
         value={search}
         onChange={(event) => handleSearchChange(event.target.value)}
       />
