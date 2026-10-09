@@ -1,6 +1,37 @@
 import { API_BASE_URL } from "../../shared/config/api";
 import type { Client, Order, OrderStatus, Product } from "./distribuidora.types";
 
+// Id de este dispositivo para la auditoria interna del backend (no hay
+// login): se genera solo la primera vez y queda guardado en el navegador.
+// Viaja UNICAMENTE en las operaciones que modifican algo -- mandarlo
+// tambien en las busquedas obligaria al navegador a hacer una consulta
+// previa (preflight) por cada letra que se tipea.
+const DEVICE_KEY = "distribuidora-device-id";
+
+function resolveDeviceId() {
+  const fresh = () =>
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  try {
+    let deviceId = window.localStorage.getItem(DEVICE_KEY);
+    if (!deviceId) {
+      deviceId = fresh();
+      window.localStorage.setItem(DEVICE_KEY, deviceId);
+    }
+    return deviceId;
+  } catch {
+    // Navegacion privada / storage bloqueado: sirve igual, pero cambia en cada carga.
+    return fresh();
+  }
+}
+
+const DEVICE_ID = resolveDeviceId();
+
+function writeHeaders(json = true): Record<string, string> {
+  return json ? { "Content-Type": "application/json", "X-Device-Id": DEVICE_ID } : { "X-Device-Id": DEVICE_ID };
+}
+
 function buildUrl(path: string) {
   return `${API_BASE_URL}/api/v1/distribuidora${path}`;
 }
@@ -24,7 +55,7 @@ async function request<T>(path: string, errorMessage: string, init?: RequestInit
 }
 
 function postJson(body: unknown): RequestInit {
-  return { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  return { method: "POST", headers: writeHeaders(), body: JSON.stringify(body) };
 }
 
 export function fetchClients(search: string) {
@@ -51,7 +82,7 @@ export function createProduct(input: { name: string; price: number }) {
 export function updateProduct(productId: number, input: Partial<{ name: string; price: number; active: boolean }>) {
   return request<Product>(`/products/${productId}`, "No se pudo guardar el producto.", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify(input)
   });
 }
@@ -67,7 +98,7 @@ export function createOrder(input: { clientId: number; items: Array<{ productId:
 export function updateOrder(orderId: number, input: { items: Array<{ productId: number; quantity: number }>; note?: string }) {
   return request<Order>(`/orders/${orderId}`, "No se pudo guardar el pedido.", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify(input)
   });
 }
@@ -76,10 +107,14 @@ export function updateOrder(orderId: number, input: { items: Array<{ productId: 
 // (el backend lo exige a proposito, para que no pase por accidente).
 export function deleteOrder(orderId: number, includeInvoiced = false) {
   return request<void>(`/orders/${orderId}${includeInvoiced ? "?boleta=1" : ""}`, "No se pudo eliminar el pedido.", {
-    method: "DELETE"
+    method: "DELETE",
+    headers: writeHeaders(false)
   });
 }
 
 export function invoiceOrder(orderId: number) {
-  return request<Order>(`/orders/${orderId}/invoice`, "No se pudo generar la boleta.", { method: "PATCH" });
+  return request<Order>(`/orders/${orderId}/invoice`, "No se pudo generar la boleta.", {
+    method: "PATCH",
+    headers: writeHeaders(false)
+  });
 }
