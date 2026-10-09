@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClientePicker } from "./components/ClientePicker";
 import { createOrder, fetchProducts } from "./distribuidora.client";
 import { errorMessage, formatMoney, useDebounced } from "./distribuidora.shared";
@@ -7,7 +7,8 @@ import type { Client, Order, Product } from "./distribuidora.types";
 type Line = { product: Product; quantity: number };
 
 // La pantalla del vendedor de la calle, pensada para el celular:
-// 1) elige el cliente, 2) arma el pedido sumando productos, 3) lo manda.
+// 1) elige el cliente, 2) busca productos y los suma al pedido que se
+// va armando abajo, 3) lo manda.
 // El pedido queda "pendiente" para que la oficina lo pase a boleta.
 export function VendedorPage() {
   const [client, setClient] = useState<Client | null>(null);
@@ -20,6 +21,7 @@ export function VendedorPage() {
   const [sending, setSending] = useState(false);
   const [sentOrder, setSentOrder] = useState<Order | null>(null);
   const debouncedSearch = useDebounced(search.trim());
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Los productos NO se listan de entrada (09/10/2026, pedido explicito:
   // "que no salga nada, lo que escriba en el buscador ahi va saliendo"):
@@ -49,6 +51,15 @@ export function VendedorPage() {
 
   function isInOrder(productId: number) {
     return lines.some((line) => line.product.id === productId);
+  }
+
+  // Al agregar se limpia el buscador: los resultados se van, el pedido
+  // queda a la vista justo abajo y el cursor vuelve al buscador, listo
+  // para el producto siguiente.
+  function handleAdd(product: Product) {
+    setQuantity(product, 1);
+    handleSearchChange("");
+    searchInputRef.current?.focus();
   }
 
   function handleSearchChange(value: string) {
@@ -141,6 +152,46 @@ export function VendedorPage() {
         </button>
       </div>
 
+      {/* Orden pedido explicitamente (09/10/2026): cliente, buscador de
+          productos y, abajo, el pedido que se va armando. */}
+      <input
+        ref={searchInputRef}
+        className="search-input"
+        type="search"
+        placeholder="Buscar producto (Coca, Fanta…)"
+        value={search}
+        onChange={(event) => handleSearchChange(event.target.value)}
+      />
+
+      {/* La cantidad se maneja en un solo lugar: abajo, "En el pedido".
+          Aca el resultado solo se agrega (o avisa que ya esta). */}
+      {search.trim() && (
+        <ul className="card-list">
+          {products.map((product) => (
+            <li key={product.id} className="card product-row">
+              <div className="product-row-info">
+                <strong>{product.name}</strong>
+                <span className="card-detail">{formatMoney(product.price)}</span>
+              </div>
+              {isInOrder(product.id) ? (
+                <span className="in-order-tag">✓ En el pedido</span>
+              ) : (
+                <button type="button" className="button button-primary" onClick={() => handleAdd(product)}>
+                  Agregar
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!search.trim() && lines.length === 0 && <p className="message">Escribí el nombre del producto para buscarlo.</p>}
+      {search.trim() && loadingProducts && products.length === 0 && <p className="message">Buscando…</p>}
+      {search.trim() && !loadingProducts && !error && products.length === 0 && (
+        <p className="message">No hay productos que coincidan con "{search.trim()}".</p>
+      )}
+      {error && <p className="message message-error">{error}</p>}
+
       {lines.length > 0 && (
         <>
           <h2 className="section-title">En el pedido</h2>
@@ -166,44 +217,6 @@ export function VendedorPage() {
           />
         </>
       )}
-
-      <h2 className="section-title">Productos</h2>
-      <input
-        className="search-input"
-        type="search"
-        placeholder="Buscar producto (Coca, Fanta…)"
-        value={search}
-        onChange={(event) => handleSearchChange(event.target.value)}
-      />
-
-      {/* La cantidad se maneja en un solo lugar: arriba, "En el pedido".
-          Aca el resultado solo se agrega (o avisa que ya esta). */}
-      {search.trim() && (
-        <ul className="card-list">
-          {products.map((product) => (
-            <li key={product.id} className="card product-row">
-              <div className="product-row-info">
-                <strong>{product.name}</strong>
-                <span className="card-detail">{formatMoney(product.price)}</span>
-              </div>
-              {isInOrder(product.id) ? (
-                <span className="in-order-tag">✓ En el pedido</span>
-              ) : (
-                <button type="button" className="button button-primary" onClick={() => setQuantity(product, 1)}>
-                  Agregar
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {!search.trim() && <p className="message">Escribí el nombre del producto para buscarlo.</p>}
-      {search.trim() && loadingProducts && products.length === 0 && <p className="message">Buscando…</p>}
-      {search.trim() && !loadingProducts && !error && products.length === 0 && (
-        <p className="message">No hay productos que coincidan con "{search.trim()}".</p>
-      )}
-      {error && <p className="message message-error">{error}</p>}
 
       <div className="bottom-bar">
         <div>

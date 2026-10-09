@@ -567,3 +567,8 @@ input {
 .card.is-inactive {
   opacity: 0.55;
 }
+
+/* Aire entre la tarjeta del cliente, el buscador y la nota. */
+.pedido .search-input {
+  margin-top: 12px;
+}
