@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 
-// Datos de la distribuidora que salen en el encabezado de la boleta.
-// SON DE EJEMPLO -- cambiar aca por los reales (nombre, RUT, direccion,
-// telefono) y reemplazar public/logo.svg por el logo de verdad.
+// Datos de la distribuidora que salen en el encabezado de la boleta
+// (09/10/2026, pasados por el cliente). La boleta es de USO INTERNO: no
+// es un comprobante fiscal, por eso no lleva RUT. La direccion queda
+// vacia "por ahora" (pedido explicito) -- al completarla aparece sola.
+// El logo sigue siendo el de ejemplo (public/logo.svg).
 export const EMPRESA = {
-  name: "Distribuidora",
-  rut: "21 000000 0019",
-  address: "Dirección de la distribuidora",
-  phone: "099 000 000"
+  name: "M. A. Distribuciones",
+  legend: "Uso interno",
+  address: "",
+  phone: "096 481 826"
 };
 
 const moneyFormatter = new Intl.NumberFormat("es-UY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -22,7 +24,9 @@ export function formatDateTime(iso: string) {
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    // Hora en 24 hs ("15:06", no "03:06 p. m.") -- pedido explicito.
+    hourCycle: "h23"
   });
 }
 

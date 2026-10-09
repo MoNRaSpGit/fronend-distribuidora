@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { OficinaPage } from "./OficinaPage";
 import { VendedorPage } from "./VendedorPage";
-import { EMPRESA } from "./distribuidora.shared";
 
 type Route = "vendedor" | "oficina";
 
@@ -32,7 +31,7 @@ export function DistribuidoraApp() {
       <header className="app-bar">
         <div className="app-bar-brand">
           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
-          <span>{EMPRESA.name}</span>
+          <span>Distribuidora</span>
         </div>
         <nav className="app-bar-tabs">
           <a href="#vendedor" className={route === "vendedor" ? "is-active" : ""}>

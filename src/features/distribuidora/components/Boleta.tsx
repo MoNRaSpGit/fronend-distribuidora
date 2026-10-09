@@ -18,8 +18,8 @@ export function Boleta({ order }: Props) {
           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
           <div>
             <strong>{EMPRESA.name}</strong>
-            <span>RUT {EMPRESA.rut}</span>
-            <span>{EMPRESA.address}</span>
+            <span>{EMPRESA.legend}</span>
+            {EMPRESA.address && <span>{EMPRESA.address}</span>}
             <span>Tel. {EMPRESA.phone}</span>
           </div>
         </div>
@@ -35,10 +35,13 @@ export function Boleta({ order }: Props) {
           <span className="boleta-label">Cliente</span>
           <strong>{order.clientName}</strong>
         </div>
-        <div>
-          <span className="boleta-label">RUT</span>
-          <span>{order.clientRut || "Consumidor final"}</span>
-        </div>
+        {/* Uso interno: el RUT del cliente solo sale si lo tiene cargado. */}
+        {order.clientRut && (
+          <div>
+            <span className="boleta-label">RUT</span>
+            <span>{order.clientRut}</span>
+          </div>
+        )}
         <div>
           <span className="boleta-label">Dirección</span>
           <span>{order.clientAddress || "—"}</span>
