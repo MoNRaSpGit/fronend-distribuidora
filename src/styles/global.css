@@ -768,3 +768,22 @@ input {
 .options-modal .button-block {
   margin-top: 8px;
 }
+
+/* ---------------- Logo del cliente (09/10/2026) ---------------- */
+/* Es una imagen con fondo blanco: en la barra verde va sobre un cuadrado
+   blanco redondeado, y en la boleta mas grande para que se lea. */
+.app-bar-brand img {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  object-fit: cover;
+}
+
+.boleta-empresa img {
+  width: 96px;
+  height: 96px;
+  border-radius: 0;
+  object-fit: contain;
+}

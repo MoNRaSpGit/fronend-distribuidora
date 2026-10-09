@@ -1,4 +1,4 @@
-import { EMPRESA, formatDateTime, formatInvoiceNumber, formatMoney } from "../distribuidora.shared";
+import { EMPRESA, EMPRESA_LOGO_URL, formatDateTime, formatInvoiceNumber, formatMoney } from "../distribuidora.shared";
 import type { Order } from "../distribuidora.types";
 
 interface Props {
@@ -15,7 +15,7 @@ export function Boleta({ order }: Props) {
     <article className="boleta">
       <header className="boleta-header">
         <div className="boleta-empresa">
-          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
+          <img src={EMPRESA_LOGO_URL} alt="" />
           <div>
             <strong>{EMPRESA.name}</strong>
             <span>{EMPRESA.legend}</span>

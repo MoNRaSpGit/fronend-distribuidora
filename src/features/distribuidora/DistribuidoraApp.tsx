@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { OficinaPage } from "./OficinaPage";
 import { VendedorPage } from "./VendedorPage";
+import { EMPRESA_LOGO_URL } from "./distribuidora.shared";
 
 type Route = "vendedor" | "oficina";
 
@@ -30,7 +31,7 @@ export function DistribuidoraApp() {
     <div className="app">
       <header className="app-bar">
         <div className="app-bar-brand">
-          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
+          <img src={EMPRESA_LOGO_URL} alt="" />
           <span>Distribuidora</span>
         </div>
         <nav className="app-bar-tabs">

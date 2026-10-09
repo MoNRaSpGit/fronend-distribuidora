@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 // (09/10/2026, pasados por el cliente). La boleta es de USO INTERNO: no
 // es un comprobante fiscal, por eso no lleva RUT. La direccion queda
 // vacia "por ahora" (pedido explicito) -- al completarla aparece sola.
-// El logo sigue siendo el de ejemplo (public/logo.svg).
+// El logo es el del cliente (public/logo-cliente.jpg, recortado del
+// original que paso, LogoClienteMA.jpg). El camioncito (logo.svg) queda
+// solo como icono de la PWA y del navegador.
+export const EMPRESA_LOGO_URL = `${import.meta.env.BASE_URL}logo-cliente.jpg`;
+
 export const EMPRESA = {
   name: "M. A. Distribuciones",
   legend: "Uso interno",
