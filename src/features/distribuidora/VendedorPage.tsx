@@ -171,7 +171,10 @@ export function VendedorPage() {
             <li key={product.id} className="card product-row">
               <div className="product-row-info">
                 <strong>{product.name}</strong>
-                <span className="card-detail">{formatMoney(product.price)}</span>
+                <span className="card-detail">
+                  {formatMoney(product.price)}
+                  {product.code ? ` · Cód. ${product.code}` : ""}
+                </span>
               </div>
               {isInOrder(product.id) ? (
                 <span className="in-order-tag">✓ En el pedido</span>

@@ -50,7 +50,7 @@ export function ProductosPanel() {
         <input
           className="search-input toolbar-search"
           type="search"
-          placeholder="Buscar producto"
+          placeholder="Buscar por nombre o código"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -78,7 +78,10 @@ export function ProductosPanel() {
             >
               <div>
                 <strong>{product.name}</strong>
-                <span className="card-detail">{product.active ? "Tocá para editar" : "Dado de baja · tocá para reactivar"}</span>
+                <span className="card-detail">
+                  {product.code ? `Cód. ${product.code} · ` : ""}
+                  {product.active ? "Tocá para editar" : "Dado de baja · tocá para reactivar"}
+                </span>
               </div>
               <strong>{formatMoney(product.price)}</strong>
             </button>

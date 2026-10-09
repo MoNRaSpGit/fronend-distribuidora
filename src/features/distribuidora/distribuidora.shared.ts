@@ -10,10 +10,6 @@ export const EMPRESA = {
   phone: "099 000 000"
 };
 
-// Los precios del catalogo se toman como IVA incluido: la boleta
-// desglosa el total hacia atras (subtotal + IVA), no le suma nada.
-export const IVA_RATE = 0.22;
-
 const moneyFormatter = new Intl.NumberFormat("es-UY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function formatMoney(value: number) {

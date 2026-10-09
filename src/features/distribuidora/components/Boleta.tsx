@@ -1,4 +1,4 @@
-import { EMPRESA, IVA_RATE, formatDateTime, formatInvoiceNumber, formatMoney } from "../distribuidora.shared";
+import { EMPRESA, formatDateTime, formatInvoiceNumber, formatMoney } from "../distribuidora.shared";
 import type { Order } from "../distribuidora.types";
 
 interface Props {
@@ -10,9 +10,6 @@ interface Props {
 // igual, pero titulada como pedido y sin numero de boleta.
 export function Boleta({ order }: Props) {
   const facturado = order.status === "facturado" && order.invoiceNumber !== null;
-  // Precios con IVA incluido: el total se desglosa hacia atras.
-  const subtotalSinIva = Math.round((order.total / (1 + IVA_RATE)) * 100) / 100;
-  const iva = Math.round((order.total - subtotalSinIva) * 100) / 100;
 
   return (
     <article className="boleta">
@@ -75,15 +72,9 @@ export function Boleta({ order }: Props) {
             <span className="boleta-label">Nota</span> {order.note}
           </p>
         )}
+        {/* Sin desglose de IVA (09/10/2026, pedido explicito: "el precio es
+            el que esta en el producto nomas, si dice 100 es 100"). */}
         <dl className="boleta-totales">
-          <div>
-            <dt>Subtotal (sin IVA)</dt>
-            <dd>{formatMoney(subtotalSinIva)}</dd>
-          </div>
-          <div>
-            <dt>IVA {Math.round(IVA_RATE * 100)}%</dt>
-            <dd>{formatMoney(iva)}</dd>
-          </div>
           <div className="boleta-total">
             <dt>TOTAL</dt>
             <dd>{formatMoney(order.total)}</dd>

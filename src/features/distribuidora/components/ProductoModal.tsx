@@ -60,7 +60,7 @@ export function ProductoModal({ product, onClose, onSaved }: Props) {
           <input value={name} onChange={(event) => setName(event.target.value)} maxLength={160} autoFocus />
         </label>
         <label className="field">
-          <span>Precio (IVA incluido)</span>
+          <span>Precio</span>
           <input value={price} onChange={(event) => setPrice(event.target.value)} inputMode="decimal" placeholder="0,00" />
         </label>
 

@@ -9,7 +9,9 @@ export type Client = {
 
 export type Product = {
   id: number;
+  code: string | null;
   name: string;
+  category: string | null;
   price: number;
   active: boolean;
 };
