@@ -12,12 +12,16 @@ interface Props {
 export function ClientePicker({ onSelect }: Props) {
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showNewClient, setShowNewClient] = useState(false);
   const debouncedSearch = useDebounced(search.trim());
 
+  // Los clientes NO se listan de entrada (09/10/2026, pedido explicito:
+  // "que solo salgan en el buscador"), igual que los productos del
+  // pedido: solo se busca cuando hay algo escrito.
   useEffect(() => {
+    if (!debouncedSearch) return;
     let cancelled = false;
     fetchClients(debouncedSearch)
       .then((result) => {
@@ -36,6 +40,20 @@ export function ClientePicker({ onSelect }: Props) {
     };
   }, [debouncedSearch]);
 
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    // Al borrar el buscador se vacian los resultados; al escribir, se
+    // avisa que esta buscando hasta que llegue la respuesta.
+    if (value.trim()) {
+      setLoading(true);
+    } else {
+      setClients([]);
+      setLoading(false);
+    }
+  }
+
+  const typed = search.trim();
+
   return (
     <section>
       <h1 className="page-title">¿A qué cliente le tomás el pedido?</h1>
@@ -45,29 +63,32 @@ export function ClientePicker({ onSelect }: Props) {
         type="search"
         placeholder="Buscar cliente por nombre o RUT"
         value={search}
-        onChange={(event) => setSearch(event.target.value)}
+        onChange={(event) => handleSearchChange(event.target.value)}
         autoFocus
       />
 
       {error && <p className="message message-error">{error}</p>}
 
-      <ul className="card-list">
-        {clients.map((client) => (
-          <li key={client.id}>
-            <button type="button" className="card card-button" onClick={() => onSelect(client)}>
-              <strong>{client.name}</strong>
-              <span className="card-detail">
-                {[client.address, client.rut ? `RUT ${client.rut}` : null].filter(Boolean).join(" · ") || "Sin datos cargados"}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {!loading && !error && clients.length === 0 && (
-        <p className="message">No hay clientes{debouncedSearch ? ` que coincidan con "${debouncedSearch}"` : ""}.</p>
+      {typed && (
+        <ul className="card-list">
+          {clients.map((client) => (
+            <li key={client.id}>
+              <button type="button" className="card card-button" onClick={() => onSelect(client)}>
+                <strong>{client.name}</strong>
+                <span className="card-detail">
+                  {[client.address, client.rut ? `RUT ${client.rut}` : null].filter(Boolean).join(" · ") || "Sin datos cargados"}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
-      {loading && clients.length === 0 && <p className="message">Buscando…</p>}
+
+      {!typed && <p className="message">Escribí el nombre o el RUT del cliente para buscarlo.</p>}
+      {typed && !loading && !error && clients.length === 0 && (
+        <p className="message">No hay clientes que coincidan con "{typed}".</p>
+      )}
+      {typed && loading && clients.length === 0 && <p className="message">Buscando…</p>}
 
       <button type="button" className="button button-secondary button-block" onClick={() => setShowNewClient(true)}>
         + Cliente nuevo
