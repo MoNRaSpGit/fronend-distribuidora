@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
 import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
+import { PrintSheet } from "./components/PrintSheet";
 import { ProductosPanel } from "./components/ProductosPanel";
 import { deleteOrder, fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
@@ -33,6 +34,21 @@ export function OficinaPage() {
   const [showProducts, setShowProducts] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [notice, setNotice] = useState("");
+  // Modo "Imprimir varias" de Facturados: boletas tildadas para imprimir
+  // de a dos por hoja.
+  const [selecting, setSelecting] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<number[]>([]);
+  // Boletas mandadas a imprimir (mientras esta abierto el cuadro de impresion).
+  const [printJob, setPrintJob] = useState<Order[] | null>(null);
+  // Cambia en cada impresion: obliga a armar las hojas de cero aunque la
+  // anterior no haya avisado que termino (algunos celulares no avisan).
+  const [printRun, setPrintRun] = useState(0);
+  const handlePrintDone = useCallback(() => setPrintJob(null), []);
+
+  function startPrint(toPrint: Order[]) {
+    setPrintRun((run) => run + 1);
+    setPrintJob(toPrint);
+  }
 
   // Cada cambio de refreshTick vuelve a pedir la lista.
   const [refreshTick, setRefreshTick] = useState(0);
@@ -63,9 +79,28 @@ export function OficinaPage() {
     return () => clearInterval(intervalId);
   }, []);
 
+  function stopSelecting() {
+    setSelecting(false);
+    setCheckedIds([]);
+  }
+
+  function toggleChecked(orderId: number) {
+    setCheckedIds((current) => (current.includes(orderId) ? current.filter((id) => id !== orderId) : [...current, orderId]));
+  }
+
+  // Se imprimen en orden de numero de boleta, sin importar el orden en
+  // que se tildaron.
+  function printChecked() {
+    const toPrint = orders
+      .filter((order) => checkedIds.includes(order.id))
+      .sort((a, b) => (a.invoiceNumber ?? 0) - (b.invoiceNumber ?? 0));
+    if (toPrint.length > 0) startPrint(toPrint);
+  }
+
   function changeStatus(nextStatus: OrderStatus) {
     setShowProducts(false);
     setNotice("");
+    stopSelecting();
     if (nextStatus === status) return;
     setLoading(true);
     setOrders([]);
@@ -212,7 +247,7 @@ export function OficinaPage() {
             ← Volver
           </button>
           {facturado ? (
-            <button type="button" className="button button-primary" onClick={() => window.print()}>
+            <button type="button" className="button button-primary" onClick={() => startPrint([selected])}>
               Imprimir boleta
             </button>
           ) : (
@@ -237,6 +272,7 @@ export function OficinaPage() {
         {error && <p className="message message-error no-print">{error}</p>}
         <Boleta order={selected} />
         {renderDeleteModal()}
+        {printJob && <PrintSheet key={printRun} orders={printJob} onDone={handlePrintDone} />}
       </section>
     );
   }
@@ -259,12 +295,24 @@ export function OficinaPage() {
           >
             Facturados
           </button>
-          <button type="button" className={showProducts ? "is-active" : ""} onClick={() => setShowProducts(true)}>
+          <button
+            type="button"
+            className={showProducts ? "is-active" : ""}
+            onClick={() => {
+              stopSelecting();
+              setShowProducts(true);
+            }}
+          >
             Productos
           </button>
         </div>
         {!showProducts && (
           <div className="toolbar-actions">
+            {status === "facturado" && orders.length > 0 && !selecting && (
+              <button type="button" className="button button-secondary" onClick={() => setSelecting(true)}>
+                Imprimir varias
+              </button>
+            )}
             <button type="button" className="button button-secondary" onClick={() => setShowNewClient(true)}>
               + Cliente
             </button>
@@ -276,6 +324,7 @@ export function OficinaPage() {
 
       {renderOptionsModal()}
       {renderDeleteModal()}
+      {printJob && <PrintSheet key={printRun} orders={printJob} onDone={handlePrintDone} />}
 
       {showNewClient && (
         <NuevoClienteModal
@@ -301,12 +350,22 @@ export function OficinaPage() {
           </p>
         )}
 
-        {orders.length > 0 && <p className="hint">Dejá apretado un pedido para ver las opciones (eliminar, abrir…).</p>}
+        {orders.length > 0 && !selecting && <p className="hint">Dejá apretado un pedido para ver las opciones (eliminar, abrir…).</p>}
+        {selecting && (
+          <p className="hint">Tocá las boletas que querés imprimir. Salen de a dos por hoja, una arriba y otra abajo.</p>
+        )}
 
         <ul className="card-list">
           {orders.map((order) => (
             <li key={order.id} className="order-item">
-              <OrderCard order={order} onOpen={() => setSelected(order)} onLongPress={() => setOptionsFor(order)} />
+              <OrderCard
+                order={order}
+                onOpen={() => setSelected(order)}
+                onLongPress={() => setOptionsFor(order)}
+                selecting={selecting}
+                checked={checkedIds.includes(order.id)}
+                onToggle={() => toggleChecked(order.id)}
+              />
               {order.status === "pendiente" && (
                 <div className="order-item-actions">
                   <button type="button" className="button button-secondary" onClick={() => setEditing(order)}>
@@ -325,6 +384,29 @@ export function OficinaPage() {
             </li>
           ))}
         </ul>
+
+        {selecting && (
+          <div className="bottom-bar">
+            <div>
+              <span className="card-detail">
+                {checkedIds.length === 0
+                  ? "Ninguna tildada"
+                  : `${checkedIds.length} boleta(s) · ${Math.ceil(checkedIds.length / 2)} hoja(s) o más`}
+              </span>
+              <button type="button" className="link-button" onClick={() => setCheckedIds(orders.map((order) => order.id))}>
+                Tildar todas
+              </button>
+            </div>
+            <div className="toolbar-actions">
+              <button type="button" className="button button-secondary" onClick={stopSelecting}>
+                Cancelar
+              </button>
+              <button type="button" className="button button-primary" onClick={printChecked} disabled={checkedIds.length === 0}>
+                Imprimir
+              </button>
+            </div>
+          </div>
+        )}
       </>
     );
   }

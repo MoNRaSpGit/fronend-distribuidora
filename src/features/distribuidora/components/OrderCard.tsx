@@ -12,12 +12,17 @@ interface Props {
   onOpen: () => void;
   // Dejar apretado (o click derecho en la PC): abre las opciones.
   onLongPress: () => void;
+  // Modo "Imprimir varias": un toque tilda o destilda la boleta en vez
+  // de abrirla, y dejar apretado no hace nada.
+  selecting?: boolean;
+  checked?: boolean;
+  onToggle?: () => void;
 }
 
 // La tarjeta de un pedido en la lista de la oficina. Un toque lo abre;
 // dejarlo apretado muestra las opciones (09/10/2026, pedido explicito:
 // "la clasica opcion que dejas apretado y te salen opciones").
-export function OrderCard({ order, onOpen, onLongPress }: Props) {
+export function OrderCard({ order, onOpen, onLongPress, selecting = false, checked = false, onToggle }: Props) {
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   // Despues de un "apretado largo", al soltar el navegador igual dispara
@@ -32,6 +37,7 @@ export function OrderCard({ order, onOpen, onLongPress }: Props) {
   }
 
   function handlePointerDown(event: PointerEvent) {
+    if (selecting) return;
     // Solo el boton principal del mouse; el derecho va por onContextMenu.
     if (event.pointerType === "mouse" && event.button !== 0) return;
     longPressedRef.current = false;
@@ -53,6 +59,10 @@ export function OrderCard({ order, onOpen, onLongPress }: Props) {
   }
 
   function handleClick() {
+    if (selecting) {
+      onToggle?.();
+      return;
+    }
     if (longPressedRef.current) {
       longPressedRef.current = false;
       return;
@@ -63,7 +73,8 @@ export function OrderCard({ order, onOpen, onLongPress }: Props) {
   return (
     <button
       type="button"
-      className="card card-button order-card"
+      className={`card card-button order-card${selecting && checked ? " is-checked" : ""}`}
+      aria-pressed={selecting ? checked : undefined}
       onClick={handleClick}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -76,13 +87,15 @@ export function OrderCard({ order, onOpen, onLongPress }: Props) {
         // abrieron por el temporizador, se abren aca (click derecho en PC).
         event.preventDefault();
         clearTimer();
+        if (selecting) return;
         if (!longPressedRef.current) {
           longPressedRef.current = event.nativeEvent instanceof PointerEvent && event.nativeEvent.pointerType !== "mouse";
           onLongPress();
         }
       }}
     >
-      <div>
+      {selecting && <span className="order-check" aria-hidden="true">{checked ? "✓" : ""}</span>}
+      <div className="order-card-main">
         <strong>{order.clientName}</strong>
         <span className="card-detail">
           {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}

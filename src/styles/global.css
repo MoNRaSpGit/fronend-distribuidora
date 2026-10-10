@@ -703,14 +703,14 @@ input {
   color: #fff;
 }
 
-/* ---------------- Impresion de la boleta: A4 horizontal (09/10/2026) ---------------- */
-/* Pedido explicito: la boleta sale en hoja A4 apaisada. @page fija el
-   tamaño y la orientacion que propone el navegador al imprimir (Chrome y
-   Edge lo respetan; si en el cuadro de impresion alguien elige otra
-   cosa a mano, gana lo que elija ahi). */
+/* ---------------- Impresion de la boleta (09/10/2026) ---------------- */
+/* Hoja A4 PARADA, con dos boletas por hoja (ver mas abajo "Dos boletas
+   por hoja"). @page fija el tamaño y la orientacion que propone el
+   navegador al imprimir (Chrome y Edge lo respetan; si en el cuadro de
+   impresion alguien elige otra cosa a mano, gana lo que elija ahi). */
 @page {
-  size: A4 landscape;
-  margin: 12mm;
+  size: A4 portrait;
+  margin: 8mm;
 }
 
 @media print {
@@ -786,4 +786,212 @@ input {
   height: 96px;
   border-radius: 0;
   object-fit: contain;
+}
+
+/* ---------------- Dos boletas por hoja (09/10/2026) ---------------- */
+/* Pedido explicito: el cliente quiere ahorrar papel. La A4 va parada y
+   se parte al medio: cada boleta ocupa media hoja (21 x 14,85 cm, o sea
+   horizontal), una arriba y otra abajo, con una linea punteada para
+   cortar. Lo arma components/PrintSheet.tsx.
+
+   Cuentas (en mm, hoja de 210 x 297 con 8 de margen => 194 x 281 utiles):
+   - mitad de arriba: 140,5 de alto => la linea de corte cae en 8 + 140,5
+     = 148,5, justo el medio de la hoja;
+   - mitad de abajo: 139,5 (queda 1 mm de aire para que el navegador no
+     agregue una hoja en blanco por redondeo);
+   - cada mitad deja 5 mm contra la linea de corte, asi que la boleta
+     tiene ~134,5 de alto. Se mide contra 132 para tener margen. */
+
+/* Seleccion de boletas en la lista de Facturados. */
+.order-check {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--color-accent);
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
+.order-card.is-checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.order-card.is-checked .order-check {
+  background: var(--color-accent);
+}
+
+.order-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.link-button {
+  display: block;
+  margin-top: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-accent-dark);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Donde se miden las boletas antes de imprimir: fuera de la pantalla,
+   pero con el mismo ancho que van a tener en el papel. */
+.print-measure {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 194mm;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.print-half-ruler {
+  height: 132mm;
+}
+
+/* Las hojas armadas solo existen para el papel. */
+.print-sheet {
+  display: none;
+}
+
+/* Boleta compacta de media hoja. Estas reglas valen igual al medir (en
+   pantalla, fuera de vista) y al imprimir: si no, lo medido no coincide
+   con lo que sale. */
+.print-measure-item .boleta,
+.print-half .boleta {
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  font-size: 9.5pt;
+  line-height: 1.25;
+}
+
+.print-measure-item .boleta-header,
+.print-half .boleta-header {
+  flex-wrap: nowrap;
+  gap: 4mm;
+  padding-bottom: 2mm;
+}
+
+.print-measure-item .boleta-empresa,
+.print-half .boleta-empresa {
+  gap: 3mm;
+}
+
+.print-measure-item .boleta-empresa img,
+.print-half .boleta-empresa img {
+  width: 20mm;
+  height: 20mm;
+}
+
+.print-measure-item .boleta-empresa strong,
+.print-half .boleta-empresa strong {
+  font-size: 13pt;
+}
+
+.print-measure-item .boleta-numero,
+.print-half .boleta-numero {
+  min-width: 42mm;
+  padding: 1.5mm 3mm;
+}
+
+.print-measure-item .boleta-numero strong,
+.print-half .boleta-numero strong {
+  font-size: 12pt;
+}
+
+.print-measure-item .boleta-cliente,
+.print-half .boleta-cliente {
+  gap: 1mm 4mm;
+  padding: 2mm 0;
+}
+
+.print-measure-item .boleta-label,
+.print-half .boleta-label {
+  font-size: 7pt;
+}
+
+.print-measure-item .boleta-tabla th,
+.print-measure-item .boleta-tabla td,
+.print-half .boleta-tabla th,
+.print-half .boleta-tabla td {
+  padding: 0.9mm 1.5mm;
+}
+
+.print-measure-item .boleta-tabla th,
+.print-half .boleta-tabla th {
+  font-size: 8pt;
+}
+
+.print-measure-item .boleta-pie,
+.print-half .boleta-pie {
+  gap: 3mm;
+  margin-top: 2mm;
+}
+
+.print-measure-item .boleta-total,
+.print-half .boleta-total {
+  font-size: 12pt;
+}
+
+@media print {
+  /* Con hojas armadas, es lo unico que sale: la app entera se oculta. */
+  body:has(.print-sheet) > #root {
+    display: none !important;
+  }
+
+  .print-sheet {
+    display: block;
+  }
+
+  .print-page {
+    height: 280mm;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .print-half {
+    box-sizing: border-box;
+    height: 139.5mm;
+    overflow: hidden;
+    padding-top: 5mm;
+  }
+
+  .print-half:first-child {
+    height: 140.5mm;
+    padding-top: 0;
+    padding-bottom: 5mm;
+    /* Linea de corte, en el medio exacto de la hoja. */
+    border-bottom: 0.3mm dashed #777;
+  }
+
+  /* El pedido que no entra en media hoja: hoja entera para el solo (y
+     las que hagan falta si es muy largo). */
+  .print-page-full {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* El total alineado con la columna Importe de la tabla (misma sangria
+   que las celdas). */
+.print-measure-item .boleta-totales,
+.print-half .boleta-totales {
+  padding-right: 1.5mm;
 }
