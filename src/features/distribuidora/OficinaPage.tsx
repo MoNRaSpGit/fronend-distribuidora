@@ -6,6 +6,7 @@ import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { PrintSheet } from "./components/PrintSheet";
 import { ProductosPanel } from "./components/ProductosPanel";
+import { WeekChart } from "./components/WeekChart";
 import { deleteOrder, fetchAllOrders, fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
 import type { Order, OrderStatus } from "./distribuidora.types";
@@ -547,27 +548,7 @@ export function OficinaPage() {
   }
 
   function renderWeekChart() {
-    const maxCount = Math.max(1, ...weekBuckets.map((bucket) => bucket.count));
-    return (
-      <div className="week-chart-wrap">
-        <h3 className="week-chart-title">Pedidos de esta semana</h3>
-        <div className="week-chart">
-          {weekBuckets.map((bucket) => (
-            <div
-              key={bucket.key}
-              className={`week-chart-bar${bucket.isToday ? " is-today" : ""}`}
-              title={`${bucket.label}: ${bucket.count} pedido(s) · ${formatMoney(bucket.total)}`}
-            >
-              <span className="week-chart-value">{bucket.count}</span>
-              <div className="week-chart-track">
-                <div className="week-chart-fill" style={{ height: `${(bucket.count / maxCount) * 100}%` }} />
-              </div>
-              <span className="week-chart-label">{bucket.isToday ? "Hoy" : bucket.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <WeekChart buckets={weekBuckets} />;
   }
 
   function renderVentas() {
