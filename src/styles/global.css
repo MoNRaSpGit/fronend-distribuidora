@@ -995,3 +995,71 @@ input {
 .print-half .boleta-totales {
   padding-right: 1.5mm;
 }
+
+/* Grafica semanal de Ventas (14/10/2026, pedido explicito): de lunes a
+   hoy, un pedido por dia. Una sola serie -- sin leyenda, el titulo ya
+   dice que es. */
+.week-chart-wrap {
+  margin-bottom: 16px;
+}
+
+.week-chart-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.week-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 10px 12px 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.week-chart-bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-chart-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.week-chart-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 90px;
+}
+
+.week-chart-fill {
+  width: 100%;
+  min-height: 3px;
+  background: var(--color-accent);
+  border-radius: 4px 4px 0 0;
+}
+
+.week-chart-bar.is-today .week-chart-fill {
+  background: var(--color-accent-dark);
+}
+
+.week-chart-label {
+  padding-bottom: 8px;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.week-chart-bar.is-today .week-chart-label {
+  font-weight: 700;
+  color: var(--color-accent-dark);
+}

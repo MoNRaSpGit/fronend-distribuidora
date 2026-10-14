@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
@@ -20,12 +20,15 @@ type Section = OrderStatus | "productos" | "ventas" | "historial";
 
 // Clave de fecha en el dia local del dispositivo (Montevideo en la
 // practica), para agrupar pedidos por dia sin importar la hora exacta.
-function toLocalDateKey(iso: string) {
-  const date = new Date(iso);
+function dateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function toLocalDateKey(iso: string) {
+  return dateKey(new Date(iso));
 }
 
 // Mascara del input de Historial: el cliente pidio el formato "04/06/27"
@@ -37,6 +40,37 @@ function formatHistorialDraft(rawValue: string) {
   if (digits.length > 4) return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 6)}`;
   if (digits.length > 2) return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
   return digits;
+}
+
+const WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+type DayBucket = { key: string; label: string; count: number; total: number; isToday: boolean };
+
+// Grafica semanal de Ventas (14/10/2026, pedido explicito): de lunes a
+// hoy, cuantos pedidos entraron cada dia. No proyecta los dias que
+// todavia no llegaron (si hoy es miercoles, solo muestra lun/mar/mie).
+function buildWeekBuckets(allOrders: Order[]): DayBucket[] {
+  const today = new Date();
+  const isoWeekday = (today.getDay() + 6) % 7; // lunes=0 ... domingo=6
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - isoWeekday);
+  const todayKey = dateKey(today);
+
+  const buckets: DayBucket[] = [];
+  for (let i = 0; i <= isoWeekday; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    const key = dateKey(date);
+    const dayOrders = allOrders.filter((order) => toLocalDateKey(order.createdAt) === key);
+    buckets.push({
+      key,
+      label: WEEKDAY_LABELS[i],
+      count: dayOrders.length,
+      total: dayOrders.reduce((sum, order) => sum + Number(order.total), 0),
+      isToday: key === todayKey
+    });
+  }
+  return buckets;
 }
 
 function historialDigitsToDateKey(digits: string): string | null {
@@ -85,6 +119,7 @@ export function OficinaPage() {
     return allOrders.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
   }, [allOrders]);
   const todayTotal = useMemo(() => todayOrders.reduce((sum, order) => sum + Number(order.total), 0), [todayOrders]);
+  const weekBuckets = useMemo(() => buildWeekBuckets(allOrders), [allOrders]);
 
   const historialDateKey = historialDigitsToDateKey(historialDigits);
   const historialOrders = useMemo(
@@ -136,10 +171,15 @@ export function OficinaPage() {
   }, [section, refreshTick]);
 
   // Ventas e Historial comparten la misma lista completa de pedidos.
+  // Solo se muestra "Cargando..." la primera vez: antes el refresco
+  // automatico (cada REFRESH_MS) volvia a poner loading=true y la lista
+  // entera desaparecia y reaparecia cada 20 segundos (pedido explicito,
+  // 14/10/2026, reportado como "se refresca la pantalla cada tanto").
+  const loadedAllOrdersOnceRef = useRef(false);
   useEffect(() => {
     if (section !== "ventas" && section !== "historial") return;
     let cancelled = false;
-    setAllOrdersLoading(true);
+    if (!loadedAllOrdersOnceRef.current) setAllOrdersLoading(true);
     fetchAllOrders()
       .then((result) => {
         if (cancelled) return;
@@ -150,7 +190,10 @@ export function OficinaPage() {
         if (!cancelled) setAllOrdersError(errorMessage(err, "No se pudieron cargar las ventas."));
       })
       .finally(() => {
-        if (!cancelled) setAllOrdersLoading(false);
+        if (!cancelled) {
+          setAllOrdersLoading(false);
+          loadedAllOrdersOnceRef.current = true;
+        }
       });
     return () => {
       cancelled = true;
@@ -503,6 +546,30 @@ export function OficinaPage() {
     );
   }
 
+  function renderWeekChart() {
+    const maxCount = Math.max(1, ...weekBuckets.map((bucket) => bucket.count));
+    return (
+      <div className="week-chart-wrap">
+        <h3 className="week-chart-title">Pedidos de esta semana</h3>
+        <div className="week-chart">
+          {weekBuckets.map((bucket) => (
+            <div
+              key={bucket.key}
+              className={`week-chart-bar${bucket.isToday ? " is-today" : ""}`}
+              title={`${bucket.label}: ${bucket.count} pedido(s) · ${formatMoney(bucket.total)}`}
+            >
+              <span className="week-chart-value">{bucket.count}</span>
+              <div className="week-chart-track">
+                <div className="week-chart-fill" style={{ height: `${(bucket.count / maxCount) * 100}%` }} />
+              </div>
+              <span className="week-chart-label">{bucket.isToday ? "Hoy" : bucket.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function renderVentas() {
     return (
       <>
@@ -510,6 +577,7 @@ export function OficinaPage() {
         {allOrdersLoading && <p className="message">Cargando ventas…</p>}
         {!allOrdersLoading && !allOrdersError && (
           <>
+            {renderWeekChart()}
             <p className="message message-ok">
               {todayOrders.length === 0
                 ? "Todavía no hay ventas hoy."
