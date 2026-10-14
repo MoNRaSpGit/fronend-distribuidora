@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { NuevoClienteModal } from "./components/NuevoClienteModal";
@@ -6,18 +6,55 @@ import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { PrintSheet } from "./components/PrintSheet";
 import { ProductosPanel } from "./components/ProductosPanel";
-import { deleteOrder, fetchOrders, invoiceOrder } from "./distribuidora.client";
+import { deleteOrder, fetchAllOrders, fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
 import type { Order, OrderStatus } from "./distribuidora.types";
 
 const REFRESH_MS = 20000;
+
+// Pestañas nuevas (14/10/2026, pedido explicito): "Ventas" (las de hoy, con
+// el total) e "Historial" (eligiendo una fecha). Cuentan TODOS los pedidos,
+// pendientes y facturados -- un pedido ya es una venta aunque la oficina
+// todavia no le haya generado boleta.
+type Section = OrderStatus | "productos" | "ventas" | "historial";
+
+// Clave de fecha en el dia local del dispositivo (Montevideo en la
+// practica), para agrupar pedidos por dia sin importar la hora exacta.
+function toLocalDateKey(iso: string) {
+  const date = new Date(iso);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Mascara del input de Historial: el cliente pidio el formato "04/06/27"
+// (dia/mes/año de 2 digitos), tipeado a mano -- mismo patron que el input
+// de fecha de Juez, separando el texto que se ve (siempre arrancando
+// vacio) del valor aplicado.
+function formatHistorialDraft(rawValue: string) {
+  const digits = rawValue.replace(/\D/g, "").slice(0, 6);
+  if (digits.length > 4) return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 6)}`;
+  if (digits.length > 2) return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
+  return digits;
+}
+
+function historialDigitsToDateKey(digits: string): string | null {
+  if (digits.length !== 6) return null;
+  const day = Number(digits.slice(0, 2));
+  const month = Math.min(Math.max(Number(digits.slice(2, 4)), 1), 12);
+  const year = 2000 + Number(digits.slice(4, 6));
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const clampedDay = Math.min(Math.max(day, 1), daysInMonth);
+  return `${year}-${String(month).padStart(2, "0")}-${String(clampedDay).padStart(2, "0")}`;
+}
 
 // La pantalla de la oficina: ve los pedidos que van mandando desde la
 // calle, abre uno y lo pasa a boleta (queda numerada y lista para
 // imprimir). Tambien da de alta clientes y, en la pestaña Productos,
 // agrega y edita el catalogo.
 export function OficinaPage() {
-  const [status, setStatus] = useState<OrderStatus>("pendiente");
+  const [section, setSection] = useState<Section>("pendiente");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,9 +68,34 @@ export function OficinaPage() {
   const [deleteError, setDeleteError] = useState("");
   // Pedido que se dejo apretado en la lista: muestra sus opciones.
   const [optionsFor, setOptionsFor] = useState<Order | null>(null);
-  const [showProducts, setShowProducts] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
   const [notice, setNotice] = useState("");
+
+  // Ventas / Historial (14/10/2026): todos los pedidos, sin filtrar por
+  // estado, para calcular el total del dia o de la fecha elegida.
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [allOrdersLoading, setAllOrdersLoading] = useState(false);
+  const [allOrdersError, setAllOrdersError] = useState("");
+  // Fecha de Historial: arranca vacia a proposito (pedido explicito: "al
+  // principio sale en blanco, el tiene que poner la fecha").
+  const [historialDigits, setHistorialDigits] = useState("");
+
+  const todayOrders = useMemo(() => {
+    const todayKey = toLocalDateKey(new Date().toISOString());
+    return allOrders.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
+  }, [allOrders]);
+  const todayTotal = useMemo(() => todayOrders.reduce((sum, order) => sum + Number(order.total), 0), [todayOrders]);
+
+  const historialDateKey = historialDigitsToDateKey(historialDigits);
+  const historialOrders = useMemo(
+    () => (historialDateKey ? allOrders.filter((order) => toLocalDateKey(order.createdAt) === historialDateKey) : null),
+    [allOrders, historialDateKey]
+  );
+  const historialTotal = useMemo(
+    () => (historialOrders ? historialOrders.reduce((sum, order) => sum + Number(order.total), 0) : 0),
+    [historialOrders]
+  );
+
   // Modo "Imprimir varias" de Facturados: boletas tildadas para imprimir
   // de a dos por hoja.
   const [selecting, setSelecting] = useState(false);
@@ -54,8 +116,9 @@ export function OficinaPage() {
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
+    if (section !== "pendiente" && section !== "facturado") return;
     let cancelled = false;
-    fetchOrders(status)
+    fetchOrders(section)
       .then((result) => {
         if (cancelled) return;
         setOrders(result);
@@ -70,7 +133,29 @@ export function OficinaPage() {
     return () => {
       cancelled = true;
     };
-  }, [status, refreshTick]);
+  }, [section, refreshTick]);
+
+  // Ventas e Historial comparten la misma lista completa de pedidos.
+  useEffect(() => {
+    if (section !== "ventas" && section !== "historial") return;
+    let cancelled = false;
+    setAllOrdersLoading(true);
+    fetchAllOrders()
+      .then((result) => {
+        if (cancelled) return;
+        setAllOrders(result);
+        setAllOrdersError("");
+      })
+      .catch((err) => {
+        if (!cancelled) setAllOrdersError(errorMessage(err, "No se pudieron cargar las ventas."));
+      })
+      .finally(() => {
+        if (!cancelled) setAllOrdersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [section, refreshTick]);
 
   // Se refresca solo: los pedidos de la calle van apareciendo sin que
   // la oficina tenga que recargar la pagina.
@@ -97,14 +182,15 @@ export function OficinaPage() {
     if (toPrint.length > 0) startPrint(toPrint);
   }
 
-  function changeStatus(nextStatus: OrderStatus) {
-    setShowProducts(false);
+  function changeSection(nextSection: Section) {
     setNotice("");
     stopSelecting();
-    if (nextStatus === status) return;
-    setLoading(true);
-    setOrders([]);
-    setStatus(nextStatus);
+    if (nextSection === section) return;
+    if (nextSection === "pendiente" || nextSection === "facturado") {
+      setLoading(true);
+      setOrders([]);
+    }
+    setSection(nextSection);
   }
 
   async function handleInvoice() {
@@ -281,34 +367,25 @@ export function OficinaPage() {
     <section>
       <div className="toolbar">
         <div className="segmented">
-          <button
-            type="button"
-            className={!showProducts && status === "pendiente" ? "is-active" : ""}
-            onClick={() => changeStatus("pendiente")}
-          >
+          <button type="button" className={section === "pendiente" ? "is-active" : ""} onClick={() => changeSection("pendiente")}>
             Pendientes
           </button>
-          <button
-            type="button"
-            className={!showProducts && status === "facturado" ? "is-active" : ""}
-            onClick={() => changeStatus("facturado")}
-          >
+          <button type="button" className={section === "facturado" ? "is-active" : ""} onClick={() => changeSection("facturado")}>
             Facturados
           </button>
-          <button
-            type="button"
-            className={showProducts ? "is-active" : ""}
-            onClick={() => {
-              stopSelecting();
-              setShowProducts(true);
-            }}
-          >
+          <button type="button" className={section === "ventas" ? "is-active" : ""} onClick={() => changeSection("ventas")}>
+            Ventas
+          </button>
+          <button type="button" className={section === "historial" ? "is-active" : ""} onClick={() => changeSection("historial")}>
+            Historial
+          </button>
+          <button type="button" className={section === "productos" ? "is-active" : ""} onClick={() => changeSection("productos")}>
             Productos
           </button>
         </div>
-        {!showProducts && (
+        {(section === "pendiente" || section === "facturado") && (
           <div className="toolbar-actions">
-            {status === "facturado" && orders.length > 0 && !selecting && (
+            {section === "facturado" && orders.length > 0 && !selecting && (
               <button type="button" className="button button-secondary" onClick={() => setSelecting(true)}>
                 Imprimir varias
               </button>
@@ -320,7 +397,10 @@ export function OficinaPage() {
         )}
       </div>
 
-      {showProducts ? <ProductosPanel /> : renderOrders()}
+      {section === "productos" && <ProductosPanel />}
+      {section === "ventas" && renderVentas()}
+      {section === "historial" && renderHistorial()}
+      {(section === "pendiente" || section === "facturado") && renderOrders()}
 
       {renderOptionsModal()}
       {renderDeleteModal()}
@@ -346,7 +426,7 @@ export function OficinaPage() {
         {loading && <p className="message">Cargando pedidos…</p>}
         {!loading && !error && orders.length === 0 && (
           <p className="message">
-            {status === "pendiente" ? "No hay pedidos pendientes. Cuando un vendedor mande uno, aparece acá." : "Todavía no hay boletas."}
+            {section === "pendiente" ? "No hay pedidos pendientes. Cuando un vendedor mande uno, aparece acá." : "Todavía no hay boletas."}
           </p>
         )}
 
@@ -406,6 +486,67 @@ export function OficinaPage() {
               </button>
             </div>
           </div>
+        )}
+      </>
+    );
+  }
+
+  function renderOrderList(list: Order[]) {
+    return (
+      <ul className="card-list">
+        {list.map((order) => (
+          <li key={order.id} className="order-item">
+            <OrderCard order={order} onOpen={() => setSelected(order)} onLongPress={() => {}} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  function renderVentas() {
+    return (
+      <>
+        {allOrdersError && <p className="message message-error">{allOrdersError}</p>}
+        {allOrdersLoading && <p className="message">Cargando ventas…</p>}
+        {!allOrdersLoading && !allOrdersError && (
+          <>
+            <p className="message message-ok">
+              {todayOrders.length === 0
+                ? "Todavía no hay ventas hoy."
+                : `${todayOrders.length} pedido(s) · Total ${formatMoney(todayTotal)}`}
+            </p>
+            {renderOrderList(todayOrders)}
+          </>
+        )}
+      </>
+    );
+  }
+
+  function renderHistorial() {
+    return (
+      <>
+        <label className="field">
+          <span>Fecha</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="dd/mm/aa"
+            value={formatHistorialDraft(historialDigits)}
+            onChange={(event) => setHistorialDigits(event.target.value.replace(/\D/g, "").slice(0, 6))}
+          />
+        </label>
+
+        {allOrdersError && <p className="message message-error">{allOrdersError}</p>}
+        {allOrdersLoading && <p className="message">Cargando…</p>}
+        {!allOrdersLoading && !allOrdersError && historialOrders !== null && (
+          <>
+            <p className="message message-ok">
+              {historialOrders.length === 0
+                ? "No hay ventas esa fecha."
+                : `${historialOrders.length} pedido(s) · Total ${formatMoney(historialTotal)}`}
+            </p>
+            {renderOrderList(historialOrders)}
+          </>
         )}
       </>
     );

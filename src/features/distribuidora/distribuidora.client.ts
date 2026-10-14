@@ -91,6 +91,13 @@ export function fetchOrders(status: OrderStatus) {
   return request<Order[]>(`/orders?status=${status}`, "No se pudieron cargar los pedidos.");
 }
 
+// Todos los pedidos, pendientes y facturados, sin filtrar -- para Ventas
+// e Historial (14/10/2026, pedido explicito): ahi un pedido ya cuenta como
+// venta aunque la oficina todavia no le haya generado el numero de boleta.
+export function fetchAllOrders() {
+  return request<Order[]>(`/orders`, "No se pudieron cargar las ventas.");
+}
+
 export function createOrder(input: { clientId: number; items: Array<{ productId: number; quantity: number }>; note?: string }) {
   return request<Order>("/orders", "No se pudo enviar el pedido. Probá de nuevo.", postJson(input));
 }
