@@ -132,6 +132,16 @@ input {
   padding-right: 40px;
 }
 
+/* Algunos navegadores (Chrome/Android entre ellos) le agregan su PROPIA
+   cruz nativa a los input type="search" -- quedaban las dos juntas,
+   pedido explicito (15/10/2026) de dejar solo la nuestra. */
+.search-input-wrap .search-input::-webkit-search-cancel-button,
+.search-input-wrap .search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 .search-input-clear {
   position: absolute;
   top: 50%;
@@ -139,6 +149,9 @@ input {
   transform: translateY(-50%);
   width: 30px;
   height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 999px;
   background: var(--color-border);
