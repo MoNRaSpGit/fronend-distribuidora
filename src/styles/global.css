@@ -1049,3 +1049,63 @@ input {
   font-size: 10px;
   fill: var(--color-muted);
 }
+
+/* Pie de pagina (14/10/2026, mismo criterio que frontend-qq y Juez):
+   franja oscura de ancho completo, "Desarrollado por Logic Lab." + logo
+   + WhatsApp en una sola linea a la derecha. .app pasa a flex-column con
+   min-height:100vh y el footer lleva margin-top:auto, para que quede
+   clavado abajo del todo cuando el contenido es bajito (mismo truco que
+   en Juez). Dark green (--color-accent-dark) en vez de navy generico,
+   para que combine con .app-bar (mismo color) y quede como "bookend"
+   arriba y abajo. */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: auto;
+  padding: 16px 20px;
+  background: var(--color-accent-dark);
+}
+
+.app-footer-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: color 0.15s ease;
+}
+
+.app-footer-credit:hover {
+  color: #ffffff;
+}
+
+.app-footer-logo {
+  display: block;
+  height: 20px;
+  width: auto;
+  border-radius: 4px;
+}
+
+.app-footer-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.app-footer-whatsapp-icon {
+  color: #25d366;
+  flex-shrink: 0;
+}
+
+.app-footer-credit span:last-child {
+  font-weight: 700;
+  color: #ffffff;
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Footer } from "./components/Footer";
 import { OficinaPage } from "./OficinaPage";
 import { VendedorPage } from "./VendedorPage";
 import { EMPRESA_LOGO_URL } from "./distribuidora.shared";
@@ -45,6 +46,8 @@ export function DistribuidoraApp() {
       </header>
 
       <main className="app-main">{route === "oficina" ? <OficinaPage /> : <VendedorPage />}</main>
+
+      <Footer />
     </div>
   );
 }
