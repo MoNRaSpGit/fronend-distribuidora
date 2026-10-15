@@ -122,6 +122,17 @@ export function OficinaPage() {
   const todayTotal = useMemo(() => todayOrders.reduce((sum, order) => sum + Number(order.total), 0), [todayOrders]);
   const weekBuckets = useMemo(() => buildWeekBuckets(allOrders), [allOrders]);
 
+  // Pedido explicito (15/10/2026): "en los pedidos pendientes que no
+  // esten facturados, que solo salgan los del dia de hoy... si queremos
+  // ver pedidos viejos vamos al Historial" -- Pendientes no acumula mas
+  // pedidos de dias anteriores; para eso ya esta Historial con su propio
+  // filtro de fecha. Facturados no se toca (sigue mostrando todo).
+  const visibleOrders = useMemo(() => {
+    if (section !== "pendiente") return orders;
+    const todayKey = toLocalDateKey(new Date().toISOString());
+    return orders.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
+  }, [orders, section]);
+
   const historialDateKey = historialDigitsToDateKey(historialDigits);
   const historialOrders = useMemo(
     () => (historialDateKey ? allOrders.filter((order) => toLocalDateKey(order.createdAt) === historialDateKey) : null),
@@ -468,19 +479,21 @@ export function OficinaPage() {
         {notice && <p className="message message-ok">{notice}</p>}
         {error && <p className="message message-error">{error}</p>}
         {loading && <p className="message">Cargando pedidos…</p>}
-        {!loading && !error && orders.length === 0 && (
+        {!loading && !error && visibleOrders.length === 0 && (
           <p className="message">
-            {section === "pendiente" ? "No hay pedidos pendientes. Cuando un vendedor mande uno, aparece acá." : "Todavía no hay boletas."}
+            {section === "pendiente"
+              ? "No hay pedidos pendientes de hoy. Cuando un vendedor mande uno, aparece acá. (Los de otros días están en Historial)."
+              : "Todavía no hay boletas."}
           </p>
         )}
 
-        {orders.length > 0 && !selecting && <p className="hint">Dejá apretado un pedido para ver las opciones (eliminar, abrir…).</p>}
+        {visibleOrders.length > 0 && !selecting && <p className="hint">Dejá apretado un pedido para ver las opciones (eliminar, abrir…).</p>}
         {selecting && (
           <p className="hint">Tocá las boletas que querés imprimir. Salen de a dos por hoja, una arriba y otra abajo.</p>
         )}
 
         <ul className="card-list">
-          {orders.map((order) => (
+          {visibleOrders.map((order) => (
             <li key={order.id} className="order-item">
               <OrderCard
                 order={order}

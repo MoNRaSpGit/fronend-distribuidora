@@ -56,12 +56,13 @@ export function VendedorPage() {
     return lines.some((line) => line.product.id === productId);
   }
 
-  // Al agregar se limpia el buscador: los resultados se van, el pedido
-  // queda a la vista justo abajo y el cursor vuelve al buscador, listo
-  // para el producto siguiente.
+  // Pedido explicito (15/10/2026): "que no lo borre al seleccionar... si
+  // tengo 5 tipos de fideo y agrego uno, tengo que escribir fideo de
+  // nuevo" -- antes se limpiaba el buscador al agregar. Ahora se deja el
+  // texto tal cual (los resultados siguen a la vista para agregar otro
+  // de la misma busqueda); el cursor vuelve igual al buscador.
   function handleAdd(product: Product) {
     setQuantity(product, 1);
-    handleSearchChange("");
     searchInputRef.current?.focus();
   }
 
@@ -163,14 +164,32 @@ export function VendedorPage() {
 
       {/* Orden pedido explicitamente (09/10/2026): cliente, buscador de
           productos y, abajo, el pedido que se va armando. */}
-      <input
-        ref={searchInputRef}
-        className="search-input"
-        type="search"
-        placeholder="Buscar producto (Fideos, Yerba, Detergente…)"
-        value={search}
-        onChange={(event) => handleSearchChange(event.target.value)}
-      />
+      <div className="search-input-wrap">
+        <input
+          ref={searchInputRef}
+          className="search-input"
+          type="search"
+          placeholder="Buscar producto (Fideos, Yerba, Detergente…)"
+          value={search}
+          onChange={(event) => handleSearchChange(event.target.value)}
+        />
+        {/* Cruz para borrar de una (15/10/2026, pedido explicito): ahora
+            que el texto ya no se borra solo al agregar un producto, hace
+            falta una forma rapida de vaciarlo a mano. */}
+        {search && (
+          <button
+            type="button"
+            className="search-input-clear"
+            aria-label="Borrar búsqueda"
+            onClick={() => {
+              handleSearchChange("");
+              searchInputRef.current?.focus();
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {/* La cantidad se maneja en un solo lugar: abajo, "En el pedido".
           Aca el resultado solo se agrega (o avisa que ya esta). */}

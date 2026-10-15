@@ -70,9 +70,12 @@ export function PedidoEditor({ order, onCancel, onSaved }: Props) {
     );
   }
 
+  // Pedido explicito (15/10/2026, mismo criterio que VendedorPage.tsx):
+  // ya no se borra el buscador solo al agregar, para no tener que
+  // retipear cuando hay varios productos parecidos (ej: 5 tipos de
+  // fideo). Se puede borrar a mano con la cruz, ver mas abajo.
   function handleAdd(product: Product) {
     setLines((current) => [...current, { productId: product.id, name: product.name, price: product.price, quantity: 1 }]);
-    handleSearchChange("");
     searchInputRef.current?.focus();
   }
 
@@ -104,14 +107,29 @@ export function PedidoEditor({ order, onCancel, onSaved }: Props) {
         </button>
       </div>
 
-      <input
-        ref={searchInputRef}
-        className="search-input"
-        type="search"
-        placeholder="Buscar un producto para agregar"
-        value={search}
-        onChange={(event) => handleSearchChange(event.target.value)}
-      />
+      <div className="search-input-wrap">
+        <input
+          ref={searchInputRef}
+          className="search-input"
+          type="search"
+          placeholder="Buscar un producto para agregar"
+          value={search}
+          onChange={(event) => handleSearchChange(event.target.value)}
+        />
+        {search && (
+          <button
+            type="button"
+            className="search-input-clear"
+            aria-label="Borrar búsqueda"
+            onClick={() => {
+              handleSearchChange("");
+              searchInputRef.current?.focus();
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {search.trim() && (
         <ul className="card-list">
