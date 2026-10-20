@@ -119,7 +119,6 @@ export function GestionClientesModal({ onClose, onSaved }: Props) {
             placeholder="Buscar cliente (negocio, persona o calle)"
             value={search}
             onChange={(event) => handleSearchChange(event.target.value)}
-            autoFocus
           />
 
           {searchError && <p className="message message-error">{searchError}</p>}

@@ -19,6 +19,14 @@ const REFRESH_MS = 20000;
 // todavia no le haya generado boleta.
 type Section = OrderStatus | "productos" | "ventas" | "historial";
 
+const SECTION_LABELS: Record<Section, string> = {
+  pendiente: "Pendientes",
+  facturado: "Facturados",
+  ventas: "Ventas",
+  historial: "Historial",
+  productos: "Productos"
+};
+
 // Clave de fecha en el dia local del dispositivo (Montevideo en la
 // practica), para agrupar pedidos por dia sin importar la hora exacta.
 function dateKey(date: Date) {
@@ -105,6 +113,11 @@ export function OficinaPage() {
   const [optionsFor, setOptionsFor] = useState<Order | null>(null);
   const [showClientManager, setShowClientManager] = useState(false);
   const [notice, setNotice] = useState("");
+  // Menu hamburguesa (19/10/2026, pedido explicito): en el celular las 5
+  // pestañas + los botones de accion no entraban prolijo en una fila, se
+  // desarmaban. Se esconden detras de este boton, solo en pantallas chicas
+  // (ver .toolbar-hamburger / .toolbar-collapsible en el CSS).
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Ventas / Historial (14/10/2026): todos los pedidos, sin filtrar por
   // estado, para calcular el total del dia o de la fecha elegida.
@@ -240,6 +253,7 @@ export function OficinaPage() {
   function changeSection(nextSection: Section) {
     setNotice("");
     stopSelecting();
+    setMenuOpen(false);
     if (nextSection === section) return;
     if (nextSection === "pendiente" || nextSection === "facturado") {
       setLoading(true);
@@ -421,35 +435,60 @@ export function OficinaPage() {
   return (
     <section>
       <div className="toolbar">
-        <div className="segmented">
-          <button type="button" className={section === "pendiente" ? "is-active" : ""} onClick={() => changeSection("pendiente")}>
-            Pendientes
-          </button>
-          <button type="button" className={section === "facturado" ? "is-active" : ""} onClick={() => changeSection("facturado")}>
-            Facturados
-          </button>
-          <button type="button" className={section === "ventas" ? "is-active" : ""} onClick={() => changeSection("ventas")}>
-            Ventas
-          </button>
-          <button type="button" className={section === "historial" ? "is-active" : ""} onClick={() => changeSection("historial")}>
-            Historial
-          </button>
-          <button type="button" className={section === "productos" ? "is-active" : ""} onClick={() => changeSection("productos")}>
-            Productos
-          </button>
-        </div>
-        {(section === "pendiente" || section === "facturado") && (
-          <div className="toolbar-actions">
-            {section === "facturado" && orders.length > 0 && !selecting && (
-              <button type="button" className="button button-secondary" onClick={() => setSelecting(true)}>
-                Imprimir varias
-              </button>
-            )}
-            <button type="button" className="button button-secondary" onClick={() => setShowClientManager(true)}>
-              Clientes
+        <button
+          type="button"
+          className="toolbar-hamburger"
+          onClick={() => setMenuOpen((current) => !current)}
+          aria-expanded={menuOpen}
+        >
+          <span className="toolbar-hamburger-icon">☰</span> {SECTION_LABELS[section]}
+        </button>
+
+        <div className={menuOpen ? "toolbar-collapsible is-open" : "toolbar-collapsible"}>
+          <div className="segmented">
+            <button type="button" className={section === "pendiente" ? "is-active" : ""} onClick={() => changeSection("pendiente")}>
+              Pendientes
+            </button>
+            <button type="button" className={section === "facturado" ? "is-active" : ""} onClick={() => changeSection("facturado")}>
+              Facturados
+            </button>
+            <button type="button" className={section === "ventas" ? "is-active" : ""} onClick={() => changeSection("ventas")}>
+              Ventas
+            </button>
+            <button type="button" className={section === "historial" ? "is-active" : ""} onClick={() => changeSection("historial")}>
+              Historial
+            </button>
+            <button type="button" className={section === "productos" ? "is-active" : ""} onClick={() => changeSection("productos")}>
+              Productos
             </button>
           </div>
-        )}
+          {(section === "pendiente" || section === "facturado") && (
+            <div className="toolbar-actions">
+              {section === "facturado" && orders.length > 0 && !selecting && (
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => {
+                    setSelecting(true);
+                    setMenuOpen(false);
+                  }}
+                >
+                  Imprimir varias
+                </button>
+              )}
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => {
+                  setShowClientManager(true);
+                  setMenuOpen(false);
+                }}
+              >
+                Clientes
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {section === "productos" && <ProductosPanel />}

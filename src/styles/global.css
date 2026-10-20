@@ -336,6 +336,7 @@ input {
 
 /* ---------------- Oficina ---------------- */
 .toolbar {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -347,6 +348,76 @@ input {
 .toolbar-actions {
   display: flex;
   gap: 8px;
+}
+
+/* Boton "☰ Pendientes" que reemplaza las 5 pestañas + acciones en
+   pantallas chicas (ver @media mas abajo) -- oculto en desktop. */
+.toolbar-hamburger {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  font-weight: 700;
+  text-align: left;
+}
+
+.toolbar-hamburger-icon {
+  font-size: 16px;
+}
+
+.toolbar-collapsible {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .toolbar-hamburger {
+    display: flex;
+  }
+
+  /* El contenido (pestañas + acciones) se esconde detras del boton de
+     arriba y aparece como un panel desplegable, en columna. */
+  .toolbar-collapsible {
+    display: none;
+  }
+
+  .toolbar-collapsible.is-open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+    z-index: 15;
+  }
+
+  .toolbar-collapsible.is-open .segmented {
+    flex-direction: column;
+  }
+
+  .toolbar-collapsible.is-open .segmented button {
+    text-align: left;
+  }
+
+  .toolbar-collapsible.is-open .toolbar-actions {
+    flex-direction: column;
+  }
 }
 
 .segmented {
@@ -400,6 +471,10 @@ input {
 .modal-backdrop.modal-backdrop--top .modal {
   border-radius: 18px;
   max-height: calc(100vh - 48px);
+  /* dvh si el navegador lo soporta: se achica de verdad cuando aparece el
+     teclado, a diferencia de vh (que queda fijo con el alto de ANTES de
+     que se abra el teclado y terminaba tapando los botones de abajo). */
+  max-height: calc(100dvh - 48px);
 }
 
 .modal {
