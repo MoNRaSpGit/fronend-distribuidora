@@ -66,6 +66,14 @@ export function createClient(input: { name: string; rut?: string; address?: stri
   return request<Client>("/clients", "No se pudo guardar el cliente.", postJson(input));
 }
 
+export function updateClient(clientId: number, input: Partial<{ name: string; rut: string; address: string; phone: string }>) {
+  return request<Client>(`/clients/${clientId}`, "No se pudo guardar el cliente.", {
+    method: "PATCH",
+    headers: writeHeaders(),
+    body: JSON.stringify(input)
+  });
+}
+
 export function fetchProducts(search: string) {
   return request<Product[]>(`/products?q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.");
 }

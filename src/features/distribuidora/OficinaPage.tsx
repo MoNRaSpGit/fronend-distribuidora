@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Boleta } from "./components/Boleta";
 import { ConfirmModal } from "./components/ConfirmModal";
-import { NuevoClienteModal } from "./components/NuevoClienteModal";
+import { GestionClientesModal } from "./components/GestionClientesModal";
 import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { PrintSheet } from "./components/PrintSheet";
@@ -103,7 +103,7 @@ export function OficinaPage() {
   const [deleteError, setDeleteError] = useState("");
   // Pedido que se dejo apretado en la lista: muestra sus opciones.
   const [optionsFor, setOptionsFor] = useState<Order | null>(null);
-  const [showNewClient, setShowNewClient] = useState(false);
+  const [showClientManager, setShowClientManager] = useState(false);
   const [notice, setNotice] = useState("");
 
   // Ventas / Historial (14/10/2026): todos los pedidos, sin filtrar por
@@ -445,8 +445,8 @@ export function OficinaPage() {
                 Imprimir varias
               </button>
             )}
-            <button type="button" className="button button-secondary" onClick={() => setShowNewClient(true)}>
-              + Cliente
+            <button type="button" className="button button-secondary" onClick={() => setShowClientManager(true)}>
+              Clientes
             </button>
           </div>
         )}
@@ -461,11 +461,11 @@ export function OficinaPage() {
       {renderDeleteModal()}
       {printJob && <PrintSheet key={printRun} orders={printJob} onDone={handlePrintDone} />}
 
-      {showNewClient && (
-        <NuevoClienteModal
-          onClose={() => setShowNewClient(false)}
-          onCreated={(client) => {
-            setShowNewClient(false);
+      {showClientManager && (
+        <GestionClientesModal
+          onClose={() => setShowClientManager(false)}
+          onSaved={(client) => {
+            setShowClientManager(false);
             setNotice(`Cliente "${client.name}" guardado.`);
           }}
         />
