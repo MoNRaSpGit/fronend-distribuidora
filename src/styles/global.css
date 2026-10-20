@@ -388,6 +388,20 @@ input {
   background: rgba(0, 0, 0, 0.45);
 }
 
+/* El buscador de clientes (GestionClientesModal) puede crecer bastante con
+   la lista de resultados -- anclado abajo como los formularios cortos
+   (NuevoClienteModal, ProductoModal) quedaba "perdido" muy abajo en el
+   celular. Este arranca pegado arriba en vez de abajo. */
+.modal-backdrop.modal-backdrop--top {
+  align-items: flex-start;
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+
+.modal-backdrop.modal-backdrop--top .modal {
+  border-radius: 18px;
+  max-height: calc(100vh - 48px);
+}
+
 .modal {
   width: 100%;
   max-width: 480px;

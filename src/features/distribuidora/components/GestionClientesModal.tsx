@@ -109,7 +109,7 @@ export function GestionClientesModal({ onClose, onSaved }: Props) {
 
   if (mode === "search") {
     return (
-      <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-backdrop modal-backdrop--top" onClick={onClose}>
         <div className="modal" onClick={(event) => event.stopPropagation()}>
           <h2>Clientes</h2>
 
