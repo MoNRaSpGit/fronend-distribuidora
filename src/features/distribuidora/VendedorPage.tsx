@@ -56,6 +56,10 @@ export function VendedorPage() {
     return lines.some((line) => line.product.id === productId);
   }
 
+  function quantityFor(productId: number) {
+    return lines.find((line) => line.product.id === productId)?.quantity ?? 0;
+  }
+
   // Pedido explicito (15/10/2026): "que no lo borre al seleccionar... si
   // tengo 5 tipos de fideo y agrego uno, tengo que escribir fideo de
   // nuevo" -- antes se limpiaba el buscador al agregar. Ahora se deja el
@@ -191,8 +195,10 @@ export function VendedorPage() {
         )}
       </div>
 
-      {/* La cantidad se maneja en un solo lugar: abajo, "En el pedido".
-          Aca el resultado solo se agrega (o avisa que ya esta). */}
+      {/* Pedido explicito (28/10/2026): el +/- aparece aca mismo apenas se
+          agrega, para no tener que bajar hasta "En el pedido" a sumar
+          cantidad. Esa seccion de abajo sigue mostrando el resumen y la
+          nota, pero la cantidad ya se puede ajustar directo aca. */}
       {search.trim() && (
         <ul className="card-list">
           {products.map((product) => (
@@ -205,7 +211,7 @@ export function VendedorPage() {
                 </span>
               </div>
               {isInOrder(product.id) ? (
-                <span className="in-order-tag">✓ En el pedido</span>
+                <QuantityStepper quantity={quantityFor(product.id)} onChange={(quantity) => setQuantity(product, quantity)} />
               ) : (
                 <button type="button" className="button button-primary" onClick={() => handleAdd(product)}>
                   Agregar

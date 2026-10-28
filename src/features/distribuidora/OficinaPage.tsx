@@ -349,18 +349,16 @@ export function OficinaPage() {
           >
             {pending ? "Abrir pedido" : "Abrir boleta"}
           </button>
-          {pending && (
-            <button
-              type="button"
-              className="button button-secondary button-block"
-              onClick={() => {
-                close();
-                setEditing(order);
-              }}
-            >
-              Editar
-            </button>
-          )}
+          <button
+            type="button"
+            className="button button-secondary button-block"
+            onClick={() => {
+              close();
+              setEditing(order);
+            }}
+          >
+            {pending ? "Editar" : "Editar boleta"}
+          </button>
           <button
             type="button"
             className="button button-danger button-block"
@@ -402,9 +400,14 @@ export function OficinaPage() {
             ← Volver
           </button>
           {facturado ? (
-            <button type="button" className="button button-primary" onClick={() => startPrint([selected])}>
-              Imprimir boleta
-            </button>
+            <div className="toolbar-actions">
+              <button type="button" className="button button-secondary" onClick={() => setEditing(selected)}>
+                Editar boleta
+              </button>
+              <button type="button" className="button button-primary" onClick={() => startPrint([selected])}>
+                Imprimir boleta
+              </button>
+            </div>
           ) : (
             <div className="toolbar-actions">
               <button

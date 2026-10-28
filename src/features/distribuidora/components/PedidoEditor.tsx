@@ -12,11 +12,14 @@ interface Props {
   onSaved: (order: Order) => void;
 }
 
-// Edicion de un pedido pendiente desde la oficina (09/10/2026, pedido
-// explicito): cambiar cantidades, sacar renglones, sumar productos y
-// tocar la nota. El cliente no se cambia -- para eso se elimina el
-// pedido y se toma de nuevo.
+// Edicion de un pedido desde la oficina (09/10/2026, pedido explicito):
+// cambiar cantidades, sacar renglones, sumar productos y tocar la nota.
+// El cliente no se cambia -- para eso se elimina el pedido y se toma de
+// nuevo. Tambien se puede editar una boleta ya facturada (28/10/2026,
+// pedido explicito desde Historial): el numero de boleta y la fecha de
+// facturacion no cambian, solo se recalcula el total.
 export function PedidoEditor({ order, onCancel, onSaved }: Props) {
+  const facturado = order.status === "facturado";
   const [lines, setLines] = useState<Line[]>(() =>
     order.items.map((item) => ({ productId: item.productId, name: item.name, price: item.price, quantity: item.quantity }))
   );
@@ -99,13 +102,18 @@ export function PedidoEditor({ order, onCancel, onSaved }: Props) {
     <section className="pedido">
       <div className="card pedido-cliente">
         <div>
-          <span className="card-detail">Editando el pedido N.º {order.id} de</span>
+          <span className="card-detail">
+            {facturado ? `Editando la boleta N.º ${order.id} de` : `Editando el pedido N.º ${order.id} de`}
+          </span>
           <strong>{order.clientName}</strong>
         </div>
         <button type="button" className="button button-secondary" onClick={onCancel} disabled={saving}>
           Cancelar
         </button>
       </div>
+      {facturado && (
+        <p className="message">Esta boleta ya fue facturada: el número no cambia, pero el total se va a recalcular.</p>
+      )}
 
       <div className="search-input-wrap">
         <input
