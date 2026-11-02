@@ -1408,3 +1408,57 @@ input {
 .user-menu-item-danger:hover {
   background: rgba(178, 58, 58, 0.1);
 }
+
+/* ---------------- Comisión (02/11/2026) ---------------- */
+.comision-range {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.comision-range .field {
+  flex: 1;
+}
+
+.comision-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.comision-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comision-percent-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.comision-percent-field {
+  max-width: 100px;
+}
+
+.comision-percent-field input {
+  text-align: right;
+}
+
+.comision-pay {
+  margin: 2px 0 0;
+  font-size: 15px;
+}
+
+.comision-details summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.comision-order-row {
+  padding: 4px 0;
+}

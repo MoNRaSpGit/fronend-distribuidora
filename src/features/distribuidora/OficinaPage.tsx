@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Boleta } from "./components/Boleta";
+import { ComisionPanel } from "./components/ComisionPanel";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { GestionClientesModal } from "./components/GestionClientesModal";
 import { OrderCard } from "./components/OrderCard";
@@ -25,14 +26,15 @@ const REFRESH_MS = 20000;
 // el total) e "Historial" (eligiendo una fecha). Cuentan TODOS los pedidos,
 // pendientes y facturados -- un pedido ya es una venta aunque la oficina
 // todavia no le haya generado boleta.
-type Section = OrderStatus | "productos" | "ventas" | "historial";
+type Section = OrderStatus | "productos" | "ventas" | "historial" | "comision";
 
 const SECTION_LABELS: Record<Section, string> = {
   pendiente: "Pendientes",
   facturado: "Facturados",
   ventas: "Ventas",
   historial: "Historial",
-  productos: "Productos"
+  productos: "Productos",
+  comision: "Comisión"
 };
 
 // Clave de fecha en el dia local del dispositivo (Montevideo en la
@@ -211,7 +213,7 @@ export function OficinaPage({ role }: Props) {
   // 14/10/2026, reportado como "se refresca la pantalla cada tanto").
   const loadedAllOrdersOnceRef = useRef(false);
   useEffect(() => {
-    if (section !== "ventas" && section !== "historial") return;
+    if (section !== "ventas" && section !== "historial" && section !== "comision") return;
     let cancelled = false;
     if (!loadedAllOrdersOnceRef.current) setAllOrdersLoading(true);
     fetchAllOrders()
@@ -482,6 +484,11 @@ export function OficinaPage({ role }: Props) {
                 Productos
               </button>
             )}
+            {isAdmin && (
+              <button type="button" className={section === "comision" ? "is-active" : ""} onClick={() => changeSection("comision")}>
+                Comisión
+              </button>
+            )}
           </div>
           {(section === "pendiente" || section === "facturado") && (
             <div className="toolbar-actions">
@@ -517,6 +524,7 @@ export function OficinaPage({ role }: Props) {
       {section === "productos" && <ProductosPanel />}
       {section === "ventas" && renderVentas()}
       {section === "historial" && renderHistorial()}
+      {section === "comision" && <ComisionPanel allOrders={allOrders} loading={allOrdersLoading} error={allOrdersError} />}
       {(section === "pendiente" || section === "facturado") && renderOrders()}
 
       {renderOptionsModal()}

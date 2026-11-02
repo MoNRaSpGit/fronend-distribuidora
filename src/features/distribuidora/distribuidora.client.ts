@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../../shared/config/api";
 import { getToken } from "./distribuidora.session";
-import type { Client, CurrentUser, Order, OrderStatus, Product } from "./distribuidora.types";
+import type { Client, CurrentUser, DistribuidoraUserSummary, Order, OrderStatus, Product } from "./distribuidora.types";
 
 // Sesion vencida o invalida -- la app vuelve a la pantalla de login.
 export class DistribuidoraUnauthorizedError extends Error {}
@@ -87,6 +87,19 @@ export function login(username: string, password: string) {
 
 export function logout() {
   return request<{ ok: boolean }>("/auth/logout", "", { method: "POST", headers: authHeader() }).catch(() => undefined);
+}
+
+// Pestaña Comisión del admin.
+export function fetchUsers() {
+  return request<DistribuidoraUserSummary[]>("/users", "No se pudieron cargar los usuarios.", { headers: authHeader() });
+}
+
+export function updateCommission(userId: number, percent: number) {
+  return request<DistribuidoraUserSummary>(`/users/${userId}/commission`, "No se pudo guardar el porcentaje.", {
+    method: "PATCH",
+    headers: writeHeaders(),
+    body: JSON.stringify({ percent })
+  });
 }
 
 export function fetchClients(search: string) {

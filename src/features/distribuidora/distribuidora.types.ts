@@ -53,3 +53,12 @@ export type CurrentUser = {
   fullName: string | null;
   role: Role;
 };
+
+// Para la pestaña Comisión del admin (02/11/2026).
+export type DistribuidoraUserSummary = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  role: Role;
+  commissionPercent: number;
+};
