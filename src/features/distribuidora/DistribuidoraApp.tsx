@@ -95,7 +95,13 @@ export function DistribuidoraApp() {
         <UserMenu name={session.user.fullName ?? session.user.username} route={route} onLogout={handleLogout} />
       </header>
 
-      <main className="app-main">{route === "oficina" ? <OficinaPage role={session.user.role} /> : <VendedorPage />}</main>
+      <main className="app-main">
+        {route === "oficina" ? (
+          <OficinaPage role={session.user.role} currentUserName={session.user.fullName ?? session.user.username} />
+        ) : (
+          <VendedorPage />
+        )}
+      </main>
 
       <Footer />
     </div>

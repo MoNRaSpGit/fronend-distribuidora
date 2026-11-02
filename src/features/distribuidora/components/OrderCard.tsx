@@ -96,11 +96,11 @@ export function OrderCard({ order, onOpen, onLongPress, selecting = false, check
     >
       {selecting && <span className="order-check" aria-hidden="true">{checked ? "✓" : ""}</span>}
       <div className="order-card-main">
+        {order.soldBy && <span className="order-seller-tag">{order.soldBy}</span>}
         <strong>{order.clientName}</strong>
         <span className="card-detail">
           {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
           {formatDateTime(order.createdAt)} · {order.items.length} producto(s)
-          {order.soldBy ? ` · vendió ${order.soldBy}` : ""}
         </span>
       </div>
       <strong>{formatMoney(order.total)}</strong>

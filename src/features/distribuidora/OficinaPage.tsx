@@ -7,6 +7,7 @@ import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { PrintSheet } from "./components/PrintSheet";
 import { ProductosPanel } from "./components/ProductosPanel";
+import { SellerWeekChart, type SellerWeekBucket } from "./components/SellerWeekChart";
 import { WeekChart } from "./components/WeekChart";
 import { deleteOrder, fetchAllOrders, fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
@@ -18,7 +19,14 @@ interface Props {
   // boletas") -- Facturados, Historial, Productos y Clientes son cosas
   // de oficina que no le tocan.
   role: Role;
+  // Nombre de quien esta logueado (02/11/2026, pedido explicito): un
+  // vendedor en Pendientes/Ventas solo ve SUS pedidos, no los de todos.
+  currentUserName: string;
 }
+
+// Colores de la grafica de Ventas del admin: el admin es azul, el resto
+// (Valentina, y quien se agregue despues) va tomando el siguiente color.
+const SELLER_COLORS = ["#2563eb", "#dc2626", "#d97706", "#7c3aed", "#059669"];
 
 const REFRESH_MS = 20000;
 
@@ -106,7 +114,7 @@ function historialDigitsToDateKey(digits: string): string | null {
 // calle, abre uno y lo pasa a boleta (queda numerada y lista para
 // imprimir). Tambien da de alta clientes y, en la pestaña Productos,
 // agrega y edita el catalogo.
-export function OficinaPage({ role }: Props) {
+export function OficinaPage({ role, currentUserName }: Props) {
   const isAdmin = role === "admin";
   const [section, setSection] = useState<Section>("pendiente");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -139,23 +147,58 @@ export function OficinaPage({ role }: Props) {
   // principio sale en blanco, el tiene que poner la fecha").
   const [historialDigits, setHistorialDigits] = useState("");
 
+  // Un vendedor (Valentina) en Ventas/Pendientes solo ve SUS pedidos, no
+  // los de todos (02/11/2026, pedido explicito). El admin (Matías) ve
+  // todo -- esa es la base de la grafica por vendedor, mas abajo.
+  const ownOrders = useMemo(
+    () => (isAdmin ? allOrders : allOrders.filter((order) => order.soldBy === currentUserName)),
+    [allOrders, isAdmin, currentUserName]
+  );
+
   const todayOrders = useMemo(() => {
     const todayKey = toLocalDateKey(new Date().toISOString());
-    return allOrders.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
-  }, [allOrders]);
+    return ownOrders.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
+  }, [ownOrders]);
   const todayTotal = useMemo(() => todayOrders.reduce((sum, order) => sum + Number(order.total), 0), [todayOrders]);
-  const weekBuckets = useMemo(() => buildWeekBuckets(allOrders), [allOrders]);
+  const weekBuckets = useMemo(() => buildWeekBuckets(ownOrders), [ownOrders]);
+
+  // Grafica del admin: una barra por vendedor y por dia (azul Matías,
+  // rojo Valentina, etc.) en vez de la linea unica de arriba.
+  const sellerWeekBuckets: SellerWeekBucket[] = useMemo(() => {
+    if (!isAdmin) return [];
+    const names = [currentUserName, ...new Set(allOrders.map((order) => order.soldBy).filter((name): name is string => !!name && name !== currentUserName))];
+    const sellers = names.map((name, index) => ({ name, color: SELLER_COLORS[index % SELLER_COLORS.length] }));
+    return weekBuckets.map((bucket) => ({
+      key: bucket.key,
+      label: bucket.label,
+      isToday: bucket.isToday,
+      bySeller: sellers.map((seller) => ({
+        name: seller.name,
+        color: seller.color,
+        total: allOrders
+          .filter((order) => order.soldBy === seller.name && toLocalDateKey(order.createdAt) === bucket.key)
+          .reduce((sum, order) => sum + Number(order.total), 0)
+      }))
+    }));
+  }, [isAdmin, allOrders, currentUserName, weekBuckets]);
+  const sellerLegend = useMemo(
+    () =>
+      sellerWeekBuckets[0]?.bySeller.map((seller) => ({ name: seller.name, color: seller.color })) ?? [],
+    [sellerWeekBuckets]
+  );
 
   // Pedido explicito (15/10/2026): "en los pedidos pendientes que no
   // esten facturados, que solo salgan los del dia de hoy... si queremos
   // ver pedidos viejos vamos al Historial" -- Pendientes no acumula mas
   // pedidos de dias anteriores; para eso ya esta Historial con su propio
   // filtro de fecha. Facturados no se toca (sigue mostrando todo).
+  // Un vendedor ademas solo ve sus propios pedidos (02/11/2026).
   const visibleOrders = useMemo(() => {
-    if (section !== "pendiente") return orders;
+    const base = isAdmin ? orders : orders.filter((order) => order.soldBy === currentUserName);
+    if (section !== "pendiente") return base;
     const todayKey = toLocalDateKey(new Date().toISOString());
-    return orders.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
-  }, [orders, section]);
+    return base.filter((order) => toLocalDateKey(order.createdAt) === todayKey);
+  }, [orders, section, isAdmin, currentUserName]);
 
   const historialDateKey = historialDigitsToDateKey(historialDigits);
   const historialOrders = useMemo(
@@ -631,7 +674,7 @@ export function OficinaPage({ role }: Props) {
   }
 
   function renderWeekChart() {
-    return <WeekChart buckets={weekBuckets} />;
+    return isAdmin ? <SellerWeekChart buckets={sellerWeekBuckets} sellers={sellerLegend} /> : <WeekChart buckets={weekBuckets} />;
   }
 
   function renderVentas() {
