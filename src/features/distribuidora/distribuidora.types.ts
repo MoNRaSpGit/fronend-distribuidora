@@ -37,8 +37,19 @@ export type Order = {
   items: OrderItem[];
   total: number;
   note: string | null;
+  // Quien tomo el pedido (02/11/2026): "Matías" o "Valentina".
+  soldBy: string | null;
   status: OrderStatus;
   invoiceNumber: number | null;
   invoicedAt: string | null;
   createdAt: string;
+};
+
+export type Role = "admin" | "vendedor";
+
+export type CurrentUser = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  role: Role;
 };

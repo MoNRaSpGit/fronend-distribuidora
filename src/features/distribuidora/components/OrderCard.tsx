@@ -100,6 +100,7 @@ export function OrderCard({ order, onOpen, onLongPress, selecting = false, check
         <span className="card-detail">
           {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
           {formatDateTime(order.createdAt)} · {order.items.length} producto(s)
+          {order.soldBy ? ` · vendió ${order.soldBy}` : ""}
         </span>
       </div>
       <strong>{formatMoney(order.total)}</strong>

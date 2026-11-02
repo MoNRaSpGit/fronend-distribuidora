@@ -1,8 +1,13 @@
 import { API_BASE_URL } from "../../shared/config/api";
-import type { Client, Order, OrderStatus, Product } from "./distribuidora.types";
+import { getToken } from "./distribuidora.session";
+import type { Client, CurrentUser, Order, OrderStatus, Product } from "./distribuidora.types";
 
-// Id de este dispositivo para la auditoria interna del backend (no hay
-// login): se genera solo la primera vez y queda guardado en el navegador.
+// Sesion vencida o invalida -- la app vuelve a la pantalla de login.
+export class DistribuidoraUnauthorizedError extends Error {}
+
+// Id de este dispositivo para la auditoria interna del backend (quien
+// vendio ya lo sabe el login; esto es ADEMAS, para saber desde que
+// celular/PC): se genera solo la primera vez y queda guardado en el navegador.
 // Viaja UNICAMENTE en las operaciones que modifican algo -- mandarlo
 // tambien en las busquedas obligaria al navegador a hacer una consulta
 // previa (preflight) por cada letra que se tipea.
@@ -28,8 +33,14 @@ function resolveDeviceId() {
 
 const DEVICE_ID = resolveDeviceId();
 
+function authHeader(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 function writeHeaders(json = true): Record<string, string> {
-  return json ? { "Content-Type": "application/json", "X-Device-Id": DEVICE_ID } : { "X-Device-Id": DEVICE_ID };
+  const base = json ? { "Content-Type": "application/json", "X-Device-Id": DEVICE_ID } : { "X-Device-Id": DEVICE_ID };
+  return { ...base, ...authHeader() };
 }
 
 function buildUrl(path: string) {
@@ -43,6 +54,13 @@ async function request<T>(path: string, errorMessage: string, init?: RequestInit
   } catch {
     // Sin señal en la calle es el caso esperable, no una rareza.
     throw new Error("Sin conexión. Revisá la señal y probá de nuevo.");
+  }
+  if (response.status === 401) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    // La app escucha este evento (DistribuidoraApp) para volver sola al
+    // login sin tener que pasar un "onUnauthorized" por cada pantalla.
+    window.dispatchEvent(new CustomEvent("distribuidora:unauthorized"));
+    throw new DistribuidoraUnauthorizedError(body?.message || "Sesión inválida o vencida. Volvé a iniciar sesión.");
   }
   if (response.status === 409) {
     // El backend explica el motivo (ej: el pedido ya tiene boleta).
@@ -58,8 +76,22 @@ function postJson(body: unknown): RequestInit {
   return { method: "POST", headers: writeHeaders(), body: JSON.stringify(body) };
 }
 
+export function login(username: string, password: string) {
+  return request<{ user: CurrentUser; token: string }>("/auth/login", "No se pudo iniciar sesión.", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
+}
+
+export function logout() {
+  return request<{ ok: boolean }>("/auth/logout", "", { method: "POST", headers: authHeader() }).catch(() => undefined);
+}
+
 export function fetchClients(search: string) {
-  return request<Client[]>(`/clients?q=${encodeURIComponent(search)}`, "No se pudieron cargar los clientes.");
+  return request<Client[]>(`/clients?q=${encodeURIComponent(search)}`, "No se pudieron cargar los clientes.", {
+    headers: authHeader()
+  });
 }
 
 export function createClient(input: { name: string; rut?: string; address?: string; phone?: string }) {
@@ -75,12 +107,16 @@ export function updateClient(clientId: number, input: Partial<{ name: string; ru
 }
 
 export function fetchProducts(search: string) {
-  return request<Product[]>(`/products?q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.");
+  return request<Product[]>(`/products?q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.", {
+    headers: authHeader()
+  });
 }
 
 // El catalogo entero para la oficina, con los dados de baja incluidos.
 export function fetchCatalog(search: string) {
-  return request<Product[]>(`/products?all=1&q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.");
+  return request<Product[]>(`/products?all=1&q=${encodeURIComponent(search)}`, "No se pudieron cargar los productos.", {
+    headers: authHeader()
+  });
 }
 
 export function createProduct(input: { name: string; price: number }) {
@@ -95,15 +131,24 @@ export function updateProduct(productId: number, input: Partial<{ name: string; 
   });
 }
 
+// Eliminar de verdad (02/11/2026, pedido explicito), a diferencia de
+// "dar de baja". Solo admin.
+export function deleteProduct(productId: number) {
+  return request<void>(`/products/${productId}`, "No se pudo eliminar el producto.", {
+    method: "DELETE",
+    headers: writeHeaders(false)
+  });
+}
+
 export function fetchOrders(status: OrderStatus) {
-  return request<Order[]>(`/orders?status=${status}`, "No se pudieron cargar los pedidos.");
+  return request<Order[]>(`/orders?status=${status}`, "No se pudieron cargar los pedidos.", { headers: authHeader() });
 }
 
 // Todos los pedidos, pendientes y facturados, sin filtrar -- para Ventas
 // e Historial (14/10/2026, pedido explicito): ahi un pedido ya cuenta como
 // venta aunque la oficina todavia no le haya generado el numero de boleta.
 export function fetchAllOrders() {
-  return request<Order[]>(`/orders`, "No se pudieron cargar las ventas.");
+  return request<Order[]>(`/orders`, "No se pudieron cargar las ventas.", { headers: authHeader() });
 }
 
 export function createOrder(input: { clientId: number; items: Array<{ productId: number; quantity: number }>; note?: string }) {

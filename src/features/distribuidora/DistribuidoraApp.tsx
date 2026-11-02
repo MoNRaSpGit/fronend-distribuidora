@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Footer } from "./components/Footer";
+import { LoginScreen } from "./components/LoginScreen";
 import { OficinaPage } from "./OficinaPage";
 import { VendedorPage } from "./VendedorPage";
-import { EMPRESA_LOGO_URL } from "./distribuidora.shared";
+import { login as loginRequest, logout as logoutRequest } from "./distribuidora.client";
+import { EMPRESA_LOGO_URL, errorMessage } from "./distribuidora.shared";
+import { clearSession, loadSession, saveSession, type Session } from "./distribuidora.session";
 
 type Route = "vendedor" | "oficina";
 
@@ -13,12 +16,17 @@ function readRoute(): Route {
   return window.location.hash === "#oficina" ? "oficina" : "vendedor";
 }
 
-// Sin login por ahora (08/10/2026, pedido explicito: "capaz que hacemos
-// un usuario solo, despues vemos como dividirlo"): las dos pantallas
-// estan a un toque de distancia. Cuando se separen los usuarios, esta
-// barra es lo que pasa a depender de quien entro.
+// Login real desde 02/11/2026 (antes "sin login por ahora", un usuario
+// solo para los dos): Matías es admin (ve todo, factura) y Valentina es
+// vendedora (toma pedidos, ve pendientes y gráficas, no factura ni toca
+// el catálogo). Las dos pestañas de siempre quedan igual para los dos
+// roles -- es OficinaPage la que, segun el rol, esconde lo que no toca.
+// Los usuarios se crean a mano con backend/scripts/create-distribuidora-user.js.
 export function DistribuidoraApp() {
+  const [session, setSession] = useState<Session | null>(() => loadSession());
   const [route, setRoute] = useState(readRoute());
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     function handleHashChange() {
@@ -27,6 +35,42 @@ export function DistribuidoraApp() {
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
+
+  // Sesión vencida o invalida (dispatcheado desde distribuidora.client.ts
+  // ante un 401): vuelve sola al login, sin importar en que pantalla esté.
+  useEffect(() => {
+    function handleUnauthorizedEvent() {
+      clearSession();
+      setSession(null);
+    }
+    window.addEventListener("distribuidora:unauthorized", handleUnauthorizedEvent);
+    return () => window.removeEventListener("distribuidora:unauthorized", handleUnauthorizedEvent);
+  }, []);
+
+  async function handleLogin(username: string, password: string) {
+    setLoginLoading(true);
+    setLoginError("");
+    try {
+      const result = await loginRequest(username, password);
+      const newSession: Session = { token: result.token, user: result.user };
+      saveSession(newSession);
+      setSession(newSession);
+    } catch (err) {
+      setLoginError(errorMessage(err, "No se pudo iniciar sesión."));
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  async function handleLogout() {
+    await logoutRequest();
+    clearSession();
+    setSession(null);
+  }
+
+  if (!session) {
+    return <LoginScreen onLogin={handleLogin} loading={loginLoading} error={loginError} />;
+  }
 
   return (
     <div className="app">
@@ -43,9 +87,15 @@ export function DistribuidoraApp() {
             Oficina
           </a>
         </nav>
+        <div className="app-bar-user">
+          <span className="app-bar-user-name">{session.user.fullName ?? session.user.username}</span>
+          <button type="button" className="app-bar-logout" onClick={handleLogout}>
+            Salir
+          </button>
+        </div>
       </header>
 
-      <main className="app-main">{route === "oficina" ? <OficinaPage /> : <VendedorPage />}</main>
+      <main className="app-main">{route === "oficina" ? <OficinaPage role={session.user.role} /> : <VendedorPage />}</main>
 
       <Footer />
     </div>

@@ -9,7 +9,15 @@ import { ProductosPanel } from "./components/ProductosPanel";
 import { WeekChart } from "./components/WeekChart";
 import { deleteOrder, fetchAllOrders, fetchOrders, invoiceOrder } from "./distribuidora.client";
 import { errorMessage, formatInvoiceNumber, formatMoney } from "./distribuidora.shared";
-import type { Order, OrderStatus } from "./distribuidora.types";
+import type { Order, OrderStatus, Role } from "./distribuidora.types";
+
+interface Props {
+  // Matías (admin) ve todo. Valentina (vendedor) solo Pendientes y
+  // Ventas (02/11/2026, pedido explicito: "no va a facturar las
+  // boletas") -- Facturados, Historial, Productos y Clientes son cosas
+  // de oficina que no le tocan.
+  role: Role;
+}
 
 const REFRESH_MS = 20000;
 
@@ -96,7 +104,8 @@ function historialDigitsToDateKey(digits: string): string | null {
 // calle, abre uno y lo pasa a boleta (queda numerada y lista para
 // imprimir). Tambien da de alta clientes y, en la pestaña Productos,
 // agrega y edita el catalogo.
-export function OficinaPage() {
+export function OficinaPage({ role }: Props) {
+  const isAdmin = role === "admin";
   const [section, setSection] = useState<Section>("pendiente");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -338,6 +347,7 @@ export function OficinaPage() {
           <p className="confirm-message">
             {order.invoiceNumber !== null ? `Boleta ${formatInvoiceNumber(order.invoiceNumber)}` : `Pedido N.º ${order.id}`} ·{" "}
             {formatMoney(order.total)}
+            {order.soldBy ? ` · vendió ${order.soldBy}` : ""}
           </p>
           <button
             type="button"
@@ -421,9 +431,11 @@ export function OficinaPage() {
               <button type="button" className="button button-secondary" onClick={() => setEditing(selected)}>
                 Editar
               </button>
-              <button type="button" className="button button-primary" onClick={handleInvoice} disabled={invoicing}>
-                {invoicing ? "Generando…" : "Generar boleta"}
-              </button>
+              {isAdmin && (
+                <button type="button" className="button button-primary" onClick={handleInvoice} disabled={invoicing}>
+                  {invoicing ? "Generando…" : "Generar boleta"}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -452,18 +464,24 @@ export function OficinaPage() {
             <button type="button" className={section === "pendiente" ? "is-active" : ""} onClick={() => changeSection("pendiente")}>
               Pendientes
             </button>
-            <button type="button" className={section === "facturado" ? "is-active" : ""} onClick={() => changeSection("facturado")}>
-              Facturados
-            </button>
+            {isAdmin && (
+              <button type="button" className={section === "facturado" ? "is-active" : ""} onClick={() => changeSection("facturado")}>
+                Facturados
+              </button>
+            )}
             <button type="button" className={section === "ventas" ? "is-active" : ""} onClick={() => changeSection("ventas")}>
               Ventas
             </button>
-            <button type="button" className={section === "historial" ? "is-active" : ""} onClick={() => changeSection("historial")}>
-              Historial
-            </button>
-            <button type="button" className={section === "productos" ? "is-active" : ""} onClick={() => changeSection("productos")}>
-              Productos
-            </button>
+            {isAdmin && (
+              <button type="button" className={section === "historial" ? "is-active" : ""} onClick={() => changeSection("historial")}>
+                Historial
+              </button>
+            )}
+            {isAdmin && (
+              <button type="button" className={section === "productos" ? "is-active" : ""} onClick={() => changeSection("productos")}>
+                Productos
+              </button>
+            )}
           </div>
           {(section === "pendiente" || section === "facturado") && (
             <div className="toolbar-actions">
@@ -479,16 +497,18 @@ export function OficinaPage() {
                   Imprimir varias
                 </button>
               )}
-              <button
-                type="button"
-                className="button button-secondary"
-                onClick={() => {
-                  setShowClientManager(true);
-                  setMenuOpen(false);
-                }}
-              >
-                Clientes
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => {
+                    setShowClientManager(true);
+                    setMenuOpen(false);
+                  }}
+                >
+                  Clientes
+                </button>
+              )}
             </div>
           )}
         </div>
