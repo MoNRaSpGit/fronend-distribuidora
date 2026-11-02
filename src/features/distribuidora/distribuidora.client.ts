@@ -39,7 +39,8 @@ function authHeader(): Record<string, string> {
 }
 
 function writeHeaders(json = true): Record<string, string> {
-  const base = json ? { "Content-Type": "application/json", "X-Device-Id": DEVICE_ID } : { "X-Device-Id": DEVICE_ID };
+  const base: Record<string, string> = { "X-Device-Id": DEVICE_ID };
+  if (json) base["Content-Type"] = "application/json";
   return { ...base, ...authHeader() };
 }
 
