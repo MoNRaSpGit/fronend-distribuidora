@@ -92,15 +92,7 @@ export function DistribuidoraApp() {
           <img src={EMPRESA_LOGO_URL} alt="" />
           <span>Distribuidora</span>
         </div>
-        <nav className="app-bar-tabs">
-          <a href="#vendedor" className={route === "vendedor" ? "is-active" : ""}>
-            Vendedor
-          </a>
-          <a href="#oficina" className={route === "oficina" ? "is-active" : ""}>
-            Oficina
-          </a>
-        </nav>
-        <UserMenu name={session.user.fullName ?? session.user.username} onLogout={handleLogout} />
+        <UserMenu name={session.user.fullName ?? session.user.username} route={route} onLogout={handleLogout} />
       </header>
 
       <main className="app-main">{route === "oficina" ? <OficinaPage role={session.user.role} /> : <VendedorPage />}</main>

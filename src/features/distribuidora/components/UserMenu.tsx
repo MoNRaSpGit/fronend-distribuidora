@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 
 interface Props {
   name: string;
+  route: "vendedor" | "oficina";
   onLogout: () => void;
 }
 
-// Quién está conectado, arriba a la derecha (02/11/2026, pedido
-// explicito): un toque despliega la opción de cerrar sesión.
-export function UserMenu({ name, onLogout }: Props) {
+// Icono de usuario arriba a la derecha (02/11/2026, pedido explicito): un
+// toque despliega Vendedor / Oficina, quien esta conectado y Cerrar
+// sesión -- antes esas dos pestañas estaban sueltas en la barra.
+export function UserMenu({ name, route, onLogout }: Props) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -24,18 +26,29 @@ export function UserMenu({ name, onLogout }: Props) {
 
   return (
     <div className="user-menu" ref={containerRef}>
-      <button type="button" className="user-menu-trigger" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
-        <span className="user-menu-name">{name}</span>
-        <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-          <path d="M3 5.5 8 11l5-5.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <button type="button" className="user-menu-trigger" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-label="Menú de usuario">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" fill="currentColor" />
+          <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="currentColor" />
         </svg>
       </button>
 
       {open && (
         <div className="user-menu-dropdown" role="menu">
+          <div className="user-menu-current">Conectado: {name}</div>
+
+          <a href="#vendedor" className={`user-menu-item${route === "vendedor" ? " is-active" : ""}`} onClick={() => setOpen(false)}>
+            Vendedor
+          </a>
+          <a href="#oficina" className={`user-menu-item${route === "oficina" ? " is-active" : ""}`} onClick={() => setOpen(false)}>
+            Oficina
+          </a>
+
+          <div className="user-menu-divider" />
+
           <button
             type="button"
-            className="user-menu-item"
+            className="user-menu-item user-menu-item-danger"
             onClick={() => {
               setOpen(false);
               onLogout();

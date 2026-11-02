@@ -1323,7 +1323,7 @@ input {
   padding: 4px 2px;
 }
 
-/* ---------------- Usuario / cerrar sesion en la barra ---------------- */
+/* ---------------- Usuario / Vendedor-Oficina / cerrar sesion ---------------- */
 .user-menu {
   position: relative;
   flex-shrink: 0;
@@ -1332,14 +1332,13 @@ input {
 .user-menu-trigger {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 50%;
   cursor: pointer;
 }
 
@@ -1347,24 +1346,33 @@ input {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.user-menu-name {
-  white-space: nowrap;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .user-menu-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
   z-index: 20;
-  min-width: 170px;
+  min-width: 190px;
   background: var(--color-surface);
   color: var(--color-text);
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
   padding: 6px;
+}
+
+.user-menu-current {
+  padding: 8px 10px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--color-border);
 }
 
 .user-menu-item {
@@ -1374,15 +1382,29 @@ input {
   width: 100%;
   border: none;
   background: none;
-  color: var(--color-danger);
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
   padding: 9px 10px;
   border-radius: 7px;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
 }
 
 .user-menu-item:hover {
+  background: var(--color-accent-soft);
+}
+
+.user-menu-item.is-active {
+  color: var(--color-accent-dark);
+  background: var(--color-accent-soft);
+}
+
+.user-menu-item-danger {
+  color: var(--color-danger);
+}
+
+.user-menu-item-danger:hover {
   background: rgba(178, 58, 58, 0.1);
 }
