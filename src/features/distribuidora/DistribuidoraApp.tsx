@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Footer } from "./components/Footer";
 import { LoginScreen } from "./components/LoginScreen";
+import { UserMenu } from "./components/UserMenu";
 import { OficinaPage } from "./OficinaPage";
 import { VendedorPage } from "./VendedorPage";
 import { login as loginRequest, logout as logoutRequest } from "./distribuidora.client";
@@ -99,12 +100,7 @@ export function DistribuidoraApp() {
             Oficina
           </a>
         </nav>
-        <div className="app-bar-user">
-          <span className="app-bar-user-name">{session.user.fullName ?? session.user.username}</span>
-          <button type="button" className="app-bar-logout" onClick={handleLogout}>
-            Salir
-          </button>
-        </div>
+        <UserMenu name={session.user.fullName ?? session.user.username} onLogout={handleLogout} />
       </header>
 
       <main className="app-main">{route === "oficina" ? <OficinaPage role={session.user.role} /> : <VendedorPage />}</main>
