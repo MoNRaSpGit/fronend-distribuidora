@@ -1474,6 +1474,10 @@ input {
 
 .comision-percent-field {
   max-width: 100px;
+  /* .field trae margin-bottom: 12px -- eso corria el input para arriba
+     respecto al boton (align-items: flex-end los alinea por el borde
+     de abajo, margen incluido), y se veian desfasados. */
+  margin-bottom: 0;
 }
 
 .comision-percent-field input {
