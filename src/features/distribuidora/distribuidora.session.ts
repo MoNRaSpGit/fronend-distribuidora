@@ -42,3 +42,32 @@ export function clearSession(): void {
 export function getToken(): string | null {
   return loadSession()?.token ?? null;
 }
+
+// "Recordar cuenta" (02/11/2026, pedido explicito): solo el usuario, en
+// localStorage (sobrevive a cerrar el navegador) -- la contraseña nunca
+// se guarda, hay que escribirla siempre.
+const REMEMBERED_USERNAME_KEY = "frontend-distribuidora.remembered-username";
+
+export function loadRememberedUsername(): string {
+  try {
+    return localStorage.getItem(REMEMBERED_USERNAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveRememberedUsername(username: string): void {
+  try {
+    localStorage.setItem(REMEMBERED_USERNAME_KEY, username);
+  } catch {
+    // ver comentario de saveSession.
+  }
+}
+
+export function clearRememberedUsername(): void {
+  try {
+    localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+  } catch {
+    // ver comentario de saveSession.
+  }
+}

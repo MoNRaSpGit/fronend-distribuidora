@@ -1,23 +1,29 @@
 import { useState, type FormEvent } from "react";
 import { EMPRESA_LOGO_URL } from "../distribuidora.shared";
+import { loadRememberedUsername } from "../distribuidora.session";
 
 interface Props {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (username: string, password: string, rememberUsername: boolean) => void;
   loading: boolean;
   error: string;
 }
 
 // Login real desde 02/11/2026 (antes no habia usuarios). Los usuarios se
 // crean a mano con backend/scripts/create-distribuidora-user.js.
+// "Recordar cuenta" (mismo dia, pedido explicito): guarda el usuario (no
+// la contraseña) para que la proxima vez solo haga falta tipear la
+// contraseña.
 export function LoginScreen({ onLogin, loading, error }: Props) {
-  const [username, setUsername] = useState("");
+  const rememberedUsername = loadRememberedUsername();
+  const [username, setUsername] = useState(rememberedUsername);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(rememberedUsername !== "");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!username.trim() || !password) return;
-    onLogin(username.trim(), password);
+    onLogin(username.trim(), password, remember);
   }
 
   return (
@@ -33,7 +39,7 @@ export function LoginScreen({ onLogin, loading, error }: Props) {
             type="text"
             autoComplete="username"
             autoCapitalize="none"
-            autoFocus
+            autoFocus={!rememberedUsername}
             value={username}
             onChange={(event) => setUsername(event.target.value)}
           />
@@ -45,6 +51,7 @@ export function LoginScreen({ onLogin, loading, error }: Props) {
             <input
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
+              autoFocus={!!rememberedUsername}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -52,6 +59,11 @@ export function LoginScreen({ onLogin, loading, error }: Props) {
               {showPassword ? "Ocultar" : "Ver"}
             </button>
           </div>
+        </label>
+
+        <label className="login-remember">
+          <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+          <span>Recordar cuenta</span>
         </label>
 
         {error && <p className="message message-error">{error}</p>}

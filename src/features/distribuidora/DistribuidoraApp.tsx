@@ -5,7 +5,14 @@ import { OficinaPage } from "./OficinaPage";
 import { VendedorPage } from "./VendedorPage";
 import { login as loginRequest, logout as logoutRequest } from "./distribuidora.client";
 import { EMPRESA_LOGO_URL, errorMessage } from "./distribuidora.shared";
-import { clearSession, loadSession, saveSession, type Session } from "./distribuidora.session";
+import {
+  clearRememberedUsername,
+  clearSession,
+  loadSession,
+  saveRememberedUsername,
+  saveSession,
+  type Session
+} from "./distribuidora.session";
 
 type Route = "vendedor" | "oficina";
 
@@ -47,7 +54,7 @@ export function DistribuidoraApp() {
     return () => window.removeEventListener("distribuidora:unauthorized", handleUnauthorizedEvent);
   }, []);
 
-  async function handleLogin(username: string, password: string) {
+  async function handleLogin(username: string, password: string, rememberUsername: boolean) {
     setLoginLoading(true);
     setLoginError("");
     try {
@@ -55,6 +62,11 @@ export function DistribuidoraApp() {
       const newSession: Session = { token: result.token, user: result.user };
       saveSession(newSession);
       setSession(newSession);
+      if (rememberUsername) {
+        saveRememberedUsername(result.user.username);
+      } else {
+        clearRememberedUsername();
+      }
     } catch (err) {
       setLoginError(errorMessage(err, "No se pudo iniciar sesión."));
     } finally {

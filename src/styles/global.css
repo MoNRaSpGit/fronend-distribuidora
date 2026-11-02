@@ -1295,6 +1295,23 @@ input {
   flex: 1;
 }
 
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+  font-size: 13.5px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.login-remember input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
 .password-toggle {
   flex-shrink: 0;
   border: none;
