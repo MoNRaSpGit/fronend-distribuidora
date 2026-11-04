@@ -90,11 +90,18 @@ export function SellerWeekChart({ buckets, sellers }: Props) {
 
         {seriesPorVendedor.map(({ seller, puntos }) =>
           puntos.map((p) => (
-            <circle key={`${seller.name}-${p.key}`} cx={p.x} cy={p.y} r={p.total > 0 ? 4.5 : 3.5} fill="#fff" stroke={seller.color} strokeWidth="2.5">
-              <title>
-                {p.label} · {seller.name}: {formatMoney(p.total)}
-              </title>
-            </circle>
+            <g key={`${seller.name}-${p.key}`}>
+              <circle cx={p.x} cy={p.y} r={p.total > 0 ? 4.5 : 3.5} fill="#fff" stroke={seller.color} strokeWidth="2.5">
+                <title>
+                  {p.label} · {seller.name}: {formatMoney(p.total)}
+                </title>
+              </circle>
+              {p.total > 0 ? (
+                <text x={p.x} y={p.y - 10} textAnchor="middle" className="week-chart-valor" style={{ fill: seller.color }}>
+                  {formatMoney(p.total)}
+                </text>
+              ) : null}
+            </g>
           ))
         )}
 
