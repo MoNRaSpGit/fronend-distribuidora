@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ClientesVendedorModal } from "./components/ClientesVendedorModal";
 import { Footer } from "./components/Footer";
 import { LoginScreen } from "./components/LoginScreen";
 import { UserMenu } from "./components/UserMenu";
@@ -35,6 +36,7 @@ export function DistribuidoraApp() {
   const [route, setRoute] = useState(readRoute());
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [showClientes, setShowClientes] = useState(false);
 
   useEffect(() => {
     function handleHashChange() {
@@ -92,7 +94,12 @@ export function DistribuidoraApp() {
           <img src={EMPRESA_LOGO_URL} alt="" />
           <span>Distribuidora</span>
         </div>
-        <UserMenu name={session.user.fullName ?? session.user.username} route={route} onLogout={handleLogout} />
+        <UserMenu
+          name={session.user.fullName ?? session.user.username}
+          route={route}
+          onLogout={handleLogout}
+          onClientes={session.user.role !== "admin" ? () => setShowClientes(true) : undefined}
+        />
       </header>
 
       <main className="app-main">
@@ -104,6 +111,8 @@ export function DistribuidoraApp() {
       </main>
 
       <Footer />
+
+      {showClientes && <ClientesVendedorModal onClose={() => setShowClientes(false)} />}
     </div>
   );
 }

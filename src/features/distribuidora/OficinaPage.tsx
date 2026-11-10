@@ -3,7 +3,6 @@ import { Boleta } from "./components/Boleta";
 import { ComisionPanel } from "./components/ComisionPanel";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { GestionClientesModal } from "./components/GestionClientesModal";
-import { NuevoClienteModal } from "./components/NuevoClienteModal";
 import { OrderCard } from "./components/OrderCard";
 import { PedidoEditor } from "./components/PedidoEditor";
 import { PrintSheet } from "./components/PrintSheet";
@@ -35,10 +34,9 @@ const REFRESH_MS = 20000;
 // el total) e "Historial" (eligiendo una fecha). Cuentan TODOS los pedidos,
 // pendientes y facturados -- un pedido ya es una venta aunque la oficina
 // todavia no le haya generado boleta.
-type Section = OrderStatus | "productos" | "ventas" | "historial" | "comision" | "clientes";
+type Section = OrderStatus | "productos" | "ventas" | "historial" | "comision";
 
 const SECTION_LABELS: Record<Section, string> = {
-  clientes: "Clientes",
   pendiente: "Pendientes",
   facturado: "Facturados",
   ventas: "Ventas",
@@ -132,9 +130,7 @@ export function OficinaPage({ role, currentUserName }: Props) {
   const [deleteError, setDeleteError] = useState("");
   // Pedido que se dejo apretado en la lista: muestra sus opciones.
   const [optionsFor, setOptionsFor] = useState<Order | null>(null);
-  const [showClientManager, setShowClientManager] = useState(false);
-  const [showNewClient, setShowNewClient] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [showClientManager, setShowClientManager] = useState(false);  const [notice, setNotice] = useState("");
   // Menu hamburguesa (19/10/2026, pedido explicito): en el celular las 5
   // pestañas + los botones de accion no entraban prolijo en una fila, se
   // desarmaban. Se esconden detras de este boton, solo en pantallas chicas
@@ -520,11 +516,6 @@ export function OficinaPage({ role, currentUserName }: Props) {
             <button type="button" className={section === "ventas" ? "is-active" : ""} onClick={() => changeSection("ventas")}>
               Ventas
             </button>
-            {!isAdmin && (
-              <button type="button" className={section === "clientes" ? "is-active" : ""} onClick={() => changeSection("clientes")}>
-                Clientes
-              </button>
-            )}
             {isAdmin && (
               <button type="button" className={section === "historial" ? "is-active" : ""} onClick={() => changeSection("historial")}>
                 Historial
@@ -573,24 +564,6 @@ export function OficinaPage({ role, currentUserName }: Props) {
       </div>
 
       {section === "productos" && <ProductosPanel />}
-      {section === "clientes" && !isAdmin && (
-        <div>
-          {notice && <p className="message message-ok">{notice}</p>}
-          <p className="message">Acá podés sumar clientes nuevos. Para cambiar los datos de uno que ya existe, avisale a la oficina.</p>
-          <button type="button" className="button button-primary" onClick={() => setShowNewClient(true)}>
-            + Agregar cliente
-          </button>
-        </div>
-      )}
-      {showNewClient && (
-        <NuevoClienteModal
-          onClose={() => setShowNewClient(false)}
-          onCreated={(client) => {
-            setShowNewClient(false);
-            setNotice(`Cliente "${client.name}" agregado.`);
-          }}
-        />
-      )}
       {section === "ventas" && renderVentas()}
       {section === "historial" && renderHistorial()}
       {section === "comision" && <ComisionPanel allOrders={allOrders} loading={allOrdersLoading} error={allOrdersError} />}

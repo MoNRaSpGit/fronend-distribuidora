@@ -4,12 +4,14 @@ interface Props {
   name: string;
   route: "vendedor" | "oficina";
   onLogout: () => void;
+  // Solo para quien puede agregar clientes sin ser admin (la vendedora).
+  onClientes?: () => void;
 }
 
 // Icono de usuario arriba a la derecha (02/11/2026, pedido explicito): un
 // toque despliega Vendedor / Oficina, quien esta conectado y Cerrar
 // sesión -- antes esas dos pestañas estaban sueltas en la barra.
-export function UserMenu({ name, route, onLogout }: Props) {
+export function UserMenu({ name, route, onLogout, onClientes }: Props) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +45,19 @@ export function UserMenu({ name, route, onLogout }: Props) {
           <a href="#oficina" className={`user-menu-item${route === "oficina" ? " is-active" : ""}`} onClick={() => setOpen(false)}>
             Oficina
           </a>
+
+          {onClientes && (
+            <button
+              type="button"
+              className="user-menu-item"
+              onClick={() => {
+                setOpen(false);
+                onClientes();
+              }}
+            >
+              Clientes
+            </button>
+          )}
 
           <div className="user-menu-divider" />
 
