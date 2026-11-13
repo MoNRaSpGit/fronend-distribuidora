@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Interno: documentacion y respaldos, no se suben (13/11/2026)
+CONTEXTO.md
+README.md
